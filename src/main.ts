@@ -1,4 +1,3 @@
-import './ui/style.css';
 import { detectRules } from './detection/regex';
 import { mapNerEntities } from './detection/ner';
 import { addManual } from './detection/manual';
