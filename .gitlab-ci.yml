@@ -1,0 +1,22 @@
+image: node:22
+
+stages: [test, deploy]
+
+test:
+  stage: test
+  script:
+    - npm ci
+    - npm test
+    - npm run build
+
+pages:
+  stage: deploy
+  script:
+    - npm ci
+    - npm run build
+  pages:
+    publish: dist
+  artifacts:
+    paths: [dist]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

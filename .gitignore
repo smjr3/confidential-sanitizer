@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+public/models/
+public/wasm/*
+!public/wasm/.gitkeep
+*.log
