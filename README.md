@@ -57,7 +57,7 @@ npm run build
 
 GitHubリポジトリの **Actions → Check model build → Run workflow → Run workflow** で手動実行できます。テスト、Hugging Faceからの固定版モデル取得、ハッシュ照合、静的サイトのビルドまで検証します。約300MBのモデルを取得するため、時間とActionsの実行枠を使います。このワークフローは**GitHub Pagesに公開しません**。GitHub Pagesを有効にする必要もありません。結果はActions画面の実行履歴で確認できます。
 
-NERを含む画面を自分のPCで試すには、成功した実行の **Artifacts → confidential-sanitizer-site** をダウンロードし、解凍した内容をこのリポジトリの `dist/` に置きます。`npm ci` の後、`npm run preview` を実行して表示されるURLを開いてください。成果物は1日で期限切れになります。会社の文章ではなく架空の文章で試してください。
+NERを含む画面を自分のPCで試すには、成功した実行の **Artifacts → confidential-sanitizer-site** をダウンロードして解凍し、`index.html` と同じ場所にある `preview.cmd` をダブルクリックしてください。Node.jsが必要です。ブラウザで `http://127.0.0.1:4173/` を開けます。`npm ci` とソースコードの取得は不要です。成果物は1日で期限切れになります。会社の文章ではなく架空の文章で試してください。
 
 ## 構成とライセンス
 
