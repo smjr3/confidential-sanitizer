@@ -1,7 +1,7 @@
 import { describe,it,expect } from 'vitest';
 import { detectRules } from '../src/detection/regex';
 import { myNumber, corporateId, luhn } from '../src/detection/validators';
-import { anonymize } from '../src/anonymize';
+import { anonymize, assignments } from '../src/anonymize';
 import { addManual } from '../src/detection/manual';
 import { alignTokens, mapNerEntities } from '../src/detection/ner';
 
@@ -50,6 +50,15 @@ describe('anonymization', () => {
     const found=addManual(input,0,8,'SYSTEM');
     expect(found).toHaveLength(2);
     expect(anonymize(input,found)).toBe('<SYSTEM_01>と<SYSTEM_01>');
+  });
+  it('shows and applies a custom replacement consistently for repeated text', () => {
+    const input='test@example.com と test@example.com';
+    const found=detectRules(input).filter(c=>c.category==='EMAIL');
+    found[0].replacement='<連絡先A>';
+    expect(assignments(found).map(a=>a.replacement)).toEqual(['<連絡先A>','<連絡先A>']);
+    expect(anonymize(input,found)).toBe('<連絡先A> と <連絡先A>');
+    found[0].enabled=false;
+    expect(anonymize(input,found)).toContain('test@example.com');
   });
   it.each([
     ['株式会社ABC','ORG','ORG'],
