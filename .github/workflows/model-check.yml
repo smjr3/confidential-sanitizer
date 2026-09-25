@@ -1,0 +1,30 @@
+name: Check model build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install packages
+        run: npm ci
+      - name: Run tests
+        run: npm test
+      - name: Download and verify model in CI
+        run: node scripts/fetch-model.mjs
+      - name: Build static site
+        run: npm run build
+      - name: Verify bundled model
+        run: test -s dist/models/jiting/xlm-roberta-ner-japanese_onnx/onnx/model_quantized.onnx
