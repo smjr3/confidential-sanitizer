@@ -22,7 +22,7 @@ npm test
 npm run build
 ```
 
-WindowsでGitHubからソース一式をZIPでダウンロードした場合は、ZIPをすべて展開して、`package.json` と `package-lock.json` があるフォルダの `start-local.bat` をダブルクリックしても起動できます。初回は依存パッケージをインストールし、ブラウザを開きます。ソースZIPにはAIモデルが入らないため、ここでは形式が決まった情報のチェックを試せます。
+WindowsでGitHubからソース一式をZIPでダウンロードした場合は、ZIPをすべて展開して、`package.json` と `package-lock.json` があるフォルダの `preview.cmd`（または `start-local.bat`）をダブルクリックしても起動できます。初回は依存パッケージをインストールし、ブラウザを開きます。ソースZIPにはAIモデルが入らないため、ここでは形式が決まった情報のチェックを試せます。
 
 開発URLはターミナルに表示されます。配布するファイルは `dist/` 内です。Viteは開発・ビルド用の道具で、完成したページにはサーバー処理がありません。`.npmrc` はPCでは使わないONNX RuntimeのCUDAダウンロードを省く設定です。
 
