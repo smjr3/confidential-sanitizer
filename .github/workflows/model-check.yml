@@ -30,6 +30,8 @@ jobs:
         run: test -s dist/models/jiting/xlm-roberta-ner-japanese_onnx/onnx/model_quantized.onnx
       - name: Include Windows preview launcher
         run: cp scripts/preview-server.mjs preview.bat dist/
+      - name: Verify Windows preview launcher
+        run: test -s dist/preview.bat && test -s dist/preview-server.mjs
       - name: Save private preview files
         uses: actions/upload-artifact@v4
         with:
