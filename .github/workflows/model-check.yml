@@ -29,7 +29,7 @@ jobs:
       - name: Verify bundled model
         run: test -s dist/models/jiting/xlm-roberta-ner-japanese_onnx/onnx/model_quantized.onnx
       - name: Include Windows preview launcher
-        run: cp scripts/preview-server.mjs scripts/preview.cmd dist/
+        run: cp scripts/preview-server.mjs scripts/preview.cmd scripts/preview.bat dist/
       - name: Save private preview files
         uses: actions/upload-artifact@v4
         with:

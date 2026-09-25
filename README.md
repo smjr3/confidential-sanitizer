@@ -22,6 +22,8 @@ npm test
 npm run build
 ```
 
+WindowsでGitHubからソース一式をZIPでダウンロードした場合は、ZIPをすべて展開して、`package.json` と `package-lock.json` があるフォルダの `start-local.bat` をダブルクリックしても起動できます。初回は依存パッケージをインストールし、ブラウザを開きます。ソースZIPにはAIモデルが入らないため、ここでは形式が決まった情報のチェックを試せます。
+
 開発URLはターミナルに表示されます。配布するファイルは `dist/` 内です。Viteは開発・ビルド用の道具で、完成したページにはサーバー処理がありません。`.npmrc` はPCでは使わないONNX RuntimeのCUDAダウンロードを省く設定です。
 
 ## 仕組みと通信
@@ -57,7 +59,7 @@ npm run build
 
 GitHubリポジトリの **Actions → Check model build → Run workflow → Run workflow** で手動実行できます。テスト、Hugging Faceからの固定版モデル取得、ハッシュ照合、静的サイトのビルドまで検証します。約300MBのモデルを取得するため、時間とActionsの実行枠を使います。このワークフローは**GitHub Pagesに公開しません**。GitHub Pagesを有効にする必要もありません。結果はActions画面の実行履歴で確認できます。
 
-NERを含む画面を自分のPCで試すには、成功した実行の **Artifacts → confidential-sanitizer-site** をダウンロードして解凍し、`index.html` と同じ場所にある `preview.cmd` をダブルクリックしてください。Node.jsが必要です。ブラウザで `http://127.0.0.1:4173/` を開けます。`npm ci` とソースコードの取得は不要です。成果物は1日で期限切れになります。会社の文章ではなく架空の文章で試してください。
+NERを含む画面を自分のPCで試すには、成功した実行の **Artifacts → confidential-sanitizer-site** をダウンロードして解凍し、`index.html` と同じ場所にある `preview.bat`（または `preview.cmd`）をダブルクリックしてください。Node.jsが必要です。ブラウザで `http://127.0.0.1:4173/` を開けます。`npm ci` とソースコードの取得は不要です。`.bat` は新しいActionsの成果物に含まれます。以前ダウンロードしたZIPには入らないので、ワークフローを再実行して取得してください。成果物は1日で期限切れになります。会社の文章ではなく架空の文章で試してください。
 
 ## 構成とライセンス
 
