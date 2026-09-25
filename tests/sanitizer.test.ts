@@ -2,6 +2,7 @@ import { describe,it,expect } from 'vitest';
 import { detectRules } from '../src/detection/regex';
 import { myNumber, corporateId, luhn } from '../src/detection/validators';
 import { anonymize, assignments } from '../src/anonymize';
+import { mappingRows, mappingCsv, mappingTsv } from '../src/anonymize/report';
 import { addManual } from '../src/detection/manual';
 import { alignTokens, mapNerEntities } from '../src/detection/ner';
 
@@ -59,6 +60,18 @@ describe('anonymization', () => {
     expect(anonymize(input,found)).toBe('<連絡先A> と <連絡先A>');
     found[0].enabled=false;
     expect(anonymize(input,found)).toContain('test@example.com');
+  });
+  it('exports only active replacements, groups repeats, and escapes spreadsheet formulas', () => {
+    const input='test@example.com と test@example.com';
+    const found=detectRules(input).filter(c=>c.category==='EMAIL');
+    found[0].replacement='=SUM(1,1)';
+    let rows=mappingRows(found);
+    expect(rows).toEqual([{original:'test@example.com',replacement:'=SUM(1,1)',category:'EMAIL',count:2}]);
+    expect(mappingCsv(rows)).toContain('"\'=SUM(1,1)"');
+    expect(mappingTsv(rows)).toContain("'=SUM(1,1)");
+    found[0].enabled=false;
+    rows=mappingRows(found);
+    expect(rows).toEqual([{original:'test@example.com',replacement:'<EMAIL_01>',category:'EMAIL',count:1}]);
   });
   it.each([
     ['株式会社ABC','ORG','ORG'],

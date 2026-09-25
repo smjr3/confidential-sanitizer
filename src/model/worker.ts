@@ -12,13 +12,13 @@ self.onmessage = async (event: MessageEvent<Request>) => {
   try {
     if (!classifier) {
       configureLocalModel(env,base);
-      self.postMessage({kind:'status', job, message:'このサイトからNERモデルを読み込んでいます（初回は約279MB）'});
+      self.postMessage({kind:'status', job, message:'このサイトから名前・組織名の判定用ファイルを読み込んでいます。'});
       const create = pipeline as unknown as (task:'token-classification', model:string, options:object)=>Promise<TokenClassificationPipelineType>;
       classifier = await create('token-classification', MODEL_ID, {
         dtype: 'q8',
         progress_callback: (progress: { status:string; progress?:number }) => {
           if (progress.status === 'progress' && typeof progress.progress === 'number')
-            self.postMessage({kind:'status', job, message:`モデル取得 ${Math.round(progress.progress)}%`});
+            self.postMessage({kind:'status', job, message:`AIファイル読み込み ${Math.round(progress.progress)}%`});
         }
       });
     }
