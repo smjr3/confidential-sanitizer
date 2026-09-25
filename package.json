@@ -6,6 +6,7 @@
   "scripts": {
     "postinstall": "node scripts/copy-wasm.mjs",
     "dev": "vite",
+    "preview": "vite preview --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

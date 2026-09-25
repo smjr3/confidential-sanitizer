@@ -57,6 +57,8 @@ npm run build
 
 GitHubリポジトリの **Actions → Check model build → Run workflow → Run workflow** で手動実行できます。テスト、Hugging Faceからの固定版モデル取得、ハッシュ照合、静的サイトのビルドまで検証します。約300MBのモデルを取得するため、時間とActionsの実行枠を使います。このワークフローは**GitHub Pagesに公開しません**。GitHub Pagesを有効にする必要もありません。結果はActions画面の実行履歴で確認できます。
 
+NERを含む画面を自分のPCで試すには、成功した実行の **Artifacts → confidential-sanitizer-site** をダウンロードし、解凍した内容をこのリポジトリの `dist/` に置きます。`npm ci` の後、`npm run preview` を実行して表示されるURLを開いてください。成果物は1日で期限切れになります。会社の文章ではなく架空の文章で試してください。
+
 ## 構成とライセンス
 
 `src/detection/regex`（ルール）、`validators`（番号検証）、`ner`（NER結果の位置と分類）、`manual`（手動追加）、`src/anonymize`（重なりと置換）、`src/model`（モデルとWeb Worker）、`src/security`（入力上限）、`src/ui`（画面）、`tests`（単体テスト）。独自の社員番号・管理番号のルールは `src/detection/regex/index.ts` の `extraRules` 引数から追加できます。顧客固有の値をソースに書く場合は社内の情報管理ルールに従ってください。
