@@ -13,6 +13,7 @@ pages:
   stage: deploy
   script:
     - npm ci
+    - node scripts/fetch-model.mjs
     - npm run build
   pages:
     publish: dist

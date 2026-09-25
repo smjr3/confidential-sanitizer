@@ -1,4 +1,4 @@
-import { appBase, LOCAL_ONLY } from './config';
+import { appBase } from './config';
 import type { NerEntity } from '../detection/ner';
 
 export class ModelLoader {
@@ -24,7 +24,7 @@ export class ModelLoader {
       worker.addEventListener('message',handler);
       worker.addEventListener('error',onError);
       this.cancel = () => { cleanup(); reject(new Error('NER処理を中断しました。')); };
-      worker.postMessage({kind:'analyze', text, base:appBase(), local:LOCAL_ONLY, job});
+      worker.postMessage({kind:'analyze', text, base:appBase(), job});
     });
   }
   dispose(): void { this.cancel?.(); this.worker?.terminate(); this.worker=undefined; }

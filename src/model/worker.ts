@@ -1,24 +1,18 @@
 /// <reference lib="webworker" />
 import { env, pipeline } from '@huggingface/transformers';
 import { MODEL_ID } from './config';
+import { configureLocalModel } from './policy';
 import { alignTokens, type NerEntity } from '../detection/ner';
 import type { TokenClassificationPipelineType } from '@huggingface/transformers';
 
 let classifier: TokenClassificationPipelineType | undefined;
-type Request = { kind:'analyze'; text:string; base:string; local:boolean; job:number };
+type Request = { kind:'analyze'; text:string; base:string; job:number };
 self.onmessage = async (event: MessageEvent<Request>) => {
-  const { text, base, local, job } = event.data;
+  const { text, base, job } = event.data;
   try {
     if (!classifier) {
-      env.allowLocalModels = local;
-      env.allowRemoteModels = !local;
-      env.localModelPath = `${base}models/`;
-      env.useBrowserCache = false;
-      if (env.backends.onnx.wasm) {
-        env.backends.onnx.wasm.wasmPaths = `${base}wasm/`;
-        env.backends.onnx.wasm.numThreads = 1;
-      }
-      self.postMessage({kind:'status', job, message:'NERモデルを読み込んでいます（初回は約279MB）'});
+      configureLocalModel(env,base);
+      self.postMessage({kind:'status', job, message:'このサイトからNERモデルを読み込んでいます（初回は約279MB）'});
       const create = pipeline as unknown as (task:'token-classification', model:string, options:object)=>Promise<TokenClassificationPipelineType>;
       classifier = await create('token-classification', MODEL_ID, {
         dtype: 'q8',

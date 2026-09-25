@@ -5,7 +5,7 @@
 ## 使い方
 
 1. 文章を入力し「高速チェック」を押します。メール、電話、IP、URL、郵便番号、住所の一部、番号、ホスト名などをルールで探します。
-2. 必要なら「固有名詞も検出」を押します。初回は約279MBの日本語モデルを取得します。氏名、企業・団体・組織、地名、施設、製品、イベント等の候補が増えます。
+2. 必要なら「固有名詞も検出」を押します。初回は**このサイト（GitLab Pages）から**約279MBの日本語モデルを取得します。氏名、企業・団体・組織、地名、施設、製品、イベント等の候補が増えます。
 3. 一覧のチェックを外すとその箇所を置換しません。見落とした固有のシステム名や案件名は、**入力欄でその文字列を選択**し、種別を選んで「匿名化対象に追加」を押します。同じ文字列を全箇所に追加します。
 4. 出力を**全文目視確認**してから「コピー」を押してください。外部AIへ自動送信する機能はありません。
 
@@ -13,7 +13,7 @@
 
 ## 開発
 
-Node.js 22以上とnpmを用意し、次を実行します。`npm install` 時にブラウザ用のWASMファイルを `public/wasm/` にコピーします。モデル本体はインストール・Git保存されません。
+Node.js 22以上とnpmを用意し、次を実行します。`npm install` 時にブラウザ用のWASMファイルを `public/wasm/` にコピーします。モデル本体はインストール・Git保存されません。開発中もブラウザはHugging Faceへ接続しません。NERを試すには、CIで取得済みのモデル一式を `public/models/` に配置する必要があります。
 
 ```bash
 npm install
@@ -34,10 +34,10 @@ npm run build
 | tokenizer | 文章をモデルが扱える小さな単位に区切る部品 | モデルと一緒に取得します |
 
 - 高速チェック：**外部通信なし**。入力文章はLocalStorage、IndexedDB、Cookie、アクセス解析、ログへ保存しません。ページ再読込時に内容は消えます。
-- 拡張チェック：初回などにHugging Faceからモデル、tokenizer、設定ファイルをダウンロードします。**入力文章は推論APIにもモデル配布元にも送信しません**。WASMはこのサイトから配信します。ブラウザや社内の配信基盤による通常のアクセスログには、静的ファイルのURLやIPアドレスが残る場合があります。
+- 拡張チェック：ブラウザは**同じサイトのGitLab Pages**からモデル、tokenizer、WASMを取得します。Hugging Faceへの取得はGitLab CIだけで行います。**入力文章はPagesにも推論APIにも送信しません**。ブラウザや社内の配信基盤による通常のアクセスログには、静的ファイルのURLやIPアドレスが残る場合があります。
 - このPoCはモデルキャッシュを無効にしています。ページ再表示時に再取得する可能性があります。入力文章はブラウザ内メモリにのみ保持します。コピー後のクリップボードの扱いは利用者のPCの設定に依存します。
-- モデル提供元のファイルを取得するとき、通信先にPCの送信元IPアドレスなど通常の通信情報は伝わります。業務文章そのものはHTTPリクエストに含めません。
-- 外部フォント・解析タグ・外部AI APIは使いません。CSP（読み込み先を制限するブラウザ設定）も `index.html` に指定しています。配布先のHTTPヘッダーでも設定することを推奨します。
+- CIのみモデル提供元へ通信します。利用者のPCはHugging Faceへ接続しません。業務文章はHTTPリクエストに含めません。
+- 外部フォント・解析タグ・外部AI APIは使いません。CSP（読み込み先を制限するブラウザ設定）の通信先を同じサイトだけに限定しています。配布先のHTTPヘッダーでも設定することを推奨します。
 
 ## 使用モデルと限界
 
@@ -47,9 +47,11 @@ npm run build
 
 ## GitLab Pagesへの配置
 
-`.gitlab-ci.yml` は `npm ci` → テスト → ビルドを実行し、既定ブランチの `dist/` をPagesに公開する例です。GitLabのPages機能・利用可能なNodeイメージ・npm/JFrogの接続許可が必要です。古いGitLabで `pages.publish` に対応しない場合は、CIで `dist/` の内容を公開用 `public/` にコピーする方式へ変更してください。相対パス配信用にViteの `base` は `./` にしています。
+`.gitlab-ci.yml` は `npm ci` → テスト → **CIでモデル取得・照合** → ビルドを実行し、既定ブランチの `dist/` をPagesに公開する例です。GitLabのPages機能・利用可能なNodeイメージ・npm/JFrogの接続許可が必要です。古いGitLabで `pages.publish` に対応しない場合は、CIで `dist/` の内容を公開用 `public/` にコピーする方式へ変更してください。相対パス配信用にViteの `base` は `./` にしています。
 
-**社内運用では外部モデル取得のまま利用しないでください。** 承認したモデルのONNX、tokenizer、設定をHugging Face→JFrog→GitLab CIで取得し、ビルド成果物の `dist/models/jiting/xlm-roberta-ner-japanese_onnx/` 以下に元のディレクトリ構造で配置します（モデル本体はGitにコミットしません）。`VITE_MODEL_SOURCE=local npm run build` に切り替えると `env.allowRemoteModels = false`、`env.allowLocalModels = true`、`env.localModelPath = <PagesのベースURL>/models/` になります。WASMはnpmの依存から自動配置されます。モデルファイル一覧とハッシュをCIで固定・検証し、配布容量、Pages上限、キャッシュ方針を確認してください。モデルを公開Pagesに置く場合、ファイルは閲覧者にダウンロード可能です。
+`scripts/fetch-model.mjs` はGitLab CIでだけ実行でき、Hugging Faceの固定コミット `8d70fc4d277a84e59ccc70520ffd9daff66e66f0` から必要なモデルファイルを `public/models/jiting/xlm-roberta-ner-japanese_onnx/` に取得します。ONNX本体とtokenizerはSHA-256で検証します。`npm run build` がそれらを `dist/models/` に同梱します。取得に失敗するとCIが停止します。モデル本体はGitにコミットしません。**利用者のブラウザでは常に** `env.allowRemoteModels = false`、`env.allowLocalModels = true`、`env.localModelPath = <PagesのベースURL>/models/` です。
+
+将来JFrog経由にする場合は、CI変数 `MODEL_BASE_URL` に承認済みモデルの配布先ディレクトリURLを指定します。同じファイル構成とハッシュならアプリの変更は不要です。JFrogの認証が必要なら保護されたCI変数 `MODEL_AUTH_TOKEN` を設定します。Pagesの配布容量・アクセス制御・キャッシュ方針を確認してください。公開Pagesに置く場合、モデルは閲覧者にダウンロード可能です。
 
 ## 構成とライセンス
 
