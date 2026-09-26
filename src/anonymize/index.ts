@@ -1,4 +1,9 @@
-import type { Candidate } from '../detection/types';
+import type { Candidate, Category } from '../detection/types';
+
+/** Category selection affects output without discarding individual candidate choices. */
+export function withCategories(candidates: Candidate[], selected: ReadonlySet<Category>): Candidate[] {
+  return candidates.map(item => selected.has(item.category) ? item : {...item,enabled:false});
+}
 
 const priority = { manual: 3, rule: 2, ner: 1 };
 export function resolved(candidates: Candidate[]): Candidate[] {

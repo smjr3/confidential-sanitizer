@@ -1,7 +1,7 @@
 import { describe,it,expect } from 'vitest';
 import { detectRules } from '../src/detection/regex';
 import { myNumber, corporateId, luhn } from '../src/detection/validators';
-import { anonymize, assignments } from '../src/anonymize';
+import { anonymize, assignments, withCategories } from '../src/anonymize';
 import { mappingRows, mappingCsv, mappingTsv } from '../src/anonymize/report';
 import { addManual } from '../src/detection/manual';
 import { alignTokens, mapNerEntities } from '../src/detection/ner';
@@ -52,6 +52,22 @@ describe('anonymization', () => {
     expect(found).toHaveLength(2);
     expect(anonymize(input,found)).toBe('<SYSTEM_01>と<SYSTEM_01>');
   });
+  it('adds a manually selected term without a category choice', () => {
+    const input='販売管理システムを利用';
+    const found=addManual(input,0,8,'OTHER');
+    expect(anonymize(input,found)).toBe('<OTHER_01>を利用');
+  });
+  it('excludes unchecked categories without losing individual choices', () => {
+    const input='test@example.com と 10.20.1.10';
+    const found=detectRules(input);
+    const selected = new Set(found.map(item => item.category));
+    selected.delete('EMAIL');
+    const filtered=withCategories(found,selected);
+    expect(anonymize(input,filtered)).toContain('test@example.com');
+    expect(anonymize(input,filtered)).toContain('<IP_01>');
+    expect(found.find(item=>item.category==='EMAIL')?.enabled).toBe(true);
+    expect(anonymize(input,withCategories(found,new Set(found.map(item=>item.category))))).toContain('<EMAIL_01>');
+  });
   it('shows and applies a custom replacement consistently for repeated text', () => {
     const input='test@example.com と test@example.com';
     const found=detectRules(input).filter(c=>c.category==='EMAIL');
@@ -68,6 +84,7 @@ describe('anonymization', () => {
     let rows=mappingRows(found);
     expect(rows).toEqual([{original:'test@example.com',replacement:'=SUM(1,1)',category:'EMAIL',count:2}]);
     expect(mappingCsv(rows)).toContain('"\'=SUM(1,1)"');
+    expect(mappingCsv(rows)).toContain('"EMAIL"');
     expect(mappingTsv(rows)).toContain("'=SUM(1,1)");
     found[0].enabled=false;
     rows=mappingRows(found);
