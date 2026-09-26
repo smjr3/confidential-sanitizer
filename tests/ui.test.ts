@@ -93,3 +93,47 @@ it('does not show a stale copy confirmation after the input changes',async()=>{
   input('a@example.com');click('check');click('copy');input('b@example.com');finish();await tick();
   expect(el('copy-feedback').textContent).toBe('');expect(el('output').value).toBe('');
 });
+it('switches editing and highlighted review without losing candidates or edited text',()=>{
+  expect(el('edit-pane').hidden).toBe(false);expect(el('review-pane').hidden).toBe(true);
+  input('a@example.com');click('check');
+  expect(el('review-pane').hidden).toBe(false);expect(el('tab-review').getAttribute('aria-selected')).toBe('true');
+  click('tab-edit');expect(el('source').value).toBe('a@example.com');expect(el('output').value).toBe('<EMAIL_01>');
+  el('tab-edit').dispatchEvent(new window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+  expect(el('review-pane').hidden).toBe(false);expect(window.document.activeElement).toBe(el('tab-review'));
+});
+it('clears the input, candidates, output, selection and export controls while keeping category settings',()=>{
+  input('a@example.com');click('check');
+  const category=window.document.querySelector('input[value="IP"]') as any;category.click();
+  click('clear');
+  expect(el('source').value).toBe('');expect(el('output').value).toBe('');expect(el('candidates').children.length).toBe(0);
+  for(const id of ['copy','download-txt','copy-mapping','download-mapping','manual'])expect(el(id).disabled).toBe(true);
+  expect(el('replacement-total').textContent).toBe('0箇所');expect(el('edit-pane').hidden).toBe(false);
+  expect(category.checked).toBe(false);expect(window.document.activeElement).toBe(el('source'));expect(mocked.dispose).toHaveBeenCalled();
+});
+it('closes the category menu outside, on Escape and when focus moves outside',()=>{
+  const filter=el('category-filter');filter.open=true;
+  el('select-all-categories').dispatchEvent(new window.PointerEvent('pointerdown',{bubbles:true}));
+  expect(filter.open).toBe(true);
+  window.document.body.dispatchEvent(new window.PointerEvent('pointerdown',{bubbles:true}));expect(filter.open).toBe(false);
+  filter.open=true;window.document.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  expect(filter.open).toBe(false);expect(window.document.activeElement).toBe(filter.querySelector('summary'));
+  filter.open=true;el('source').focus();expect(filter.open).toBe(false);
+});
+it('opens the help as a dialog and closes with its button, Escape and backdrop',()=>{
+  const help=el('help-dialog');click('help-open');expect(help.open).toBe(true);
+  expect(help.textContent).toContain('入力をクリア');expect(help.textContent).toContain('ブラウザ内AI');
+  help.querySelector('.help-content').click();expect(help.open).toBe(true);
+  click('help-close');expect(help.open).toBe(false);expect(window.document.activeElement).toBe(el('help-open'));
+  click('help-open');window.document.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));expect(help.open).toBe(false);
+  click('help-open');help.click();expect(help.open).toBe(false);
+});
+it('keeps detection method and confidence visible in the compact table',async()=>{
+  mocked.available.mockResolvedValue(true);
+  mocked.analyze.mockResolvedValue([{entity_group:'PER',start:0,end:4,offset:0,score:.9}]);
+  input('山田太郎');click('ner');await tick();
+  const row=el('candidates').children[0];
+  expect(row.children.length).toBe(5);expect(row.querySelector('.detection-method').textContent).toContain('90%');
+  expect(row.querySelector('select').title).toBe('氏名');
+  row.querySelector('select').value='OTHER';change(row.querySelector('select'));
+  expect(el('output').value).toBe('<OTHER_01>');
+});

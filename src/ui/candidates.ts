@@ -31,6 +31,7 @@ export class CandidateTable {
       row.checkbox.title=allowed ? '' : `${CATEGORY_LABELS[item.category]}は入力欄の種別設定で対象外です`;
       row.checkbox.setAttribute('aria-label',`${item.text}の${group.length}箇所をマスキングする`);
       row.kind.value=item.category;
+      row.kind.title=CATEGORY_LABELS[item.category];
       row.replacement.disabled=!active.length;
       if (!row.dirty || document.activeElement!==row.replacement) {
         row.replacement.value=active.length ? replacements.get(active[0].id)! : (!allowed ? '種別設定で対象外' : group.some(candidate=>candidate.enabled) ? '別の候補を優先' : '置換しない');
@@ -67,8 +68,10 @@ export class CandidateTable {
       for(const candidate of this.candidates())if(candidate.text===current.text && candidate.category===current.category)candidate.replacement=next || undefined;
       this.status(next ? '置換先を変更しました。' : '自動生成の置換先に戻しました。');this.changed();
     });
-    const value=document.createElement('span');value.textContent=item.text;
-    for(const [index,element] of [row.checkbox,value,row.kind,row.method,row.replacement,row.total].entries()){
+    const value=document.createElement('div');
+    const original=document.createElement('span');original.textContent=item.text;
+    row.method.className='detection-method';value.append(original,row.method);
+    for(const [index,element] of [row.checkbox,value,row.replacement,row.kind,row.total].entries()){
       const cell=document.createElement('td');if(index===1)cell.className='original-cell';cell.append(element);row.node.append(cell);
     }
     return row;
