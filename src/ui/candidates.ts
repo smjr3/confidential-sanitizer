@@ -1,3 +1,4 @@
+import { t } from '../content/text';
 import { CATEGORIES, CATEGORY_LABELS, type Candidate, type Category } from '../detection/types';
 import type { Assignment } from '../anonymize';
 
@@ -28,18 +29,18 @@ export class CandidateTable {
       row.checkbox.checked=allowed && group.every(candidate=>candidate.enabled);
       row.checkbox.indeterminate=allowed && !row.checkbox.checked && group.some(candidate=>candidate.enabled);
       row.checkbox.disabled=!allowed;
-      row.checkbox.title=allowed ? '' : `${CATEGORY_LABELS[item.category]}は入力欄の種別設定で対象外です`;
-      row.checkbox.setAttribute('aria-label',`${item.text}の${group.length}箇所をマスキングする`);
+      row.checkbox.title=allowed ? '' : t('candidate.filteredTitle',{category:CATEGORY_LABELS[item.category]});
+      row.checkbox.setAttribute('aria-label',t('candidate.checkLabel',{text:item.text,count:group.length}));
       row.kind.value=item.category;
       row.kind.title=CATEGORY_LABELS[item.category];
       row.replacement.disabled=!active.length;
       if (!row.dirty || document.activeElement!==row.replacement) {
-        row.replacement.value=active.length ? replacements.get(active[0].id)! : (!allowed ? '種別設定で対象外' : group.some(candidate=>candidate.enabled) ? '別の候補を優先' : '置換しない');
+        row.replacement.value=active.length ? replacements.get(active[0].id)! : (!allowed ? t('candidate.filtered') : group.some(candidate=>candidate.enabled) ? t('candidate.overlap') : t('candidate.excluded'));
         row.dirty=false;
       }
       const confidence=group.flatMap(candidate=>candidate.confidence===undefined ? [] : [candidate.confidence]);
-      row.method.textContent=`${item.method==='rule' ? '形式' : item.method==='manual' ? '手動' : 'ブラウザ内AI'}${confidence.length ? `（平均${Math.round(confidence.reduce((a,b)=>a+b,0)/confidence.length*100)}%）` : ''}`;
-      row.total.textContent=`${active.length} / ${group.length}`;
+      row.method.textContent=`${item.method==='rule' ? t('method.rule') : item.method==='manual' ? t('method.manual') : t('method.ner')}${confidence.length ? t('candidate.confidence',{percent:Math.round(confidence.reduce((a,b)=>a+b,0)/confidence.length*100)}) : ''}`;
+      row.total.textContent=t('candidate.counts',{active:active.length,total:group.length});
       // Do not move controls which are already in the right position (preserves focus).
       if (this.body.children[position]!==row.node) this.body.insertBefore(row.node,this.body.children[position] ?? null);
       position++;
@@ -54,19 +55,19 @@ export class CandidateTable {
     for(const category of CATEGORIES){
       const option=document.createElement('option');option.textContent=CATEGORY_LABELS[category];option.value=category;row.kind.add(option);
     }
-    row.kind.setAttribute('aria-label',`${item.text}の種別`);
+    row.kind.setAttribute('aria-label',t('candidate.categoryLabel',{text:item.text}));
     row.kind.addEventListener('change',()=>{for(const candidate of row.group){candidate.category=row.kind.value as Category;candidate.replacement=undefined;}this.changed();});
     row.replacement.type='text';row.replacement.className='replacement';
-    row.replacement.setAttribute('aria-label',`${item.text}の置換先`);
+    row.replacement.setAttribute('aria-label',t('candidate.replacementLabel',{text:item.text}));
     row.replacement.addEventListener('input',()=>{row.dirty=true;});
     row.replacement.addEventListener('change',()=>{
       row.dirty=false;
       const current=row.group[0];
       const next=row.replacement.value.trim();
-      if(next===current.text){this.status('元の文字列と同じ置換先は指定できません。');this.changed();return;}
+      if(next===current.text){this.status(t('candidate.sameReplacement'));this.changed();return;}
       // All occurrences must agree, including ones found by a different detection method.
       for(const candidate of this.candidates())if(candidate.text===current.text && candidate.category===current.category)candidate.replacement=next || undefined;
-      this.status(next ? '置換先を変更しました。' : '自動生成の置換先に戻しました。');this.changed();
+      this.status(next ? t('candidate.edited') : t('candidate.reset'));this.changed();
     });
     const value=document.createElement('div');
     const original=document.createElement('span');original.textContent=item.text;

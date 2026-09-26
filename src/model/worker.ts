@@ -1,4 +1,5 @@
 /// <reference lib="webworker" />
+import { t } from '../content/text';
 import { env, pipeline } from '@huggingface/transformers';
 import { MODEL_ID } from './config';
 import { configureLocalModel } from './policy';
@@ -12,13 +13,13 @@ self.onmessage = async (event: MessageEvent<Request>) => {
   try {
     if (!classifier) {
       configureLocalModel(env,base);
-      self.postMessage({kind:'status', job, message:'このサイトから名前・組織名の判定用ファイルを読み込んでいます。'});
+      self.postMessage({kind:'status', job, message:t('ai.loading')});
       const create = pipeline as unknown as (task:'token-classification', model:string, options:object)=>Promise<TokenClassificationPipelineType>;
       classifier = await create('token-classification', MODEL_ID, {
         dtype: 'q8',
         progress_callback: (progress: { status:string; progress?:number }) => {
           if (progress.status === 'progress' && typeof progress.progress === 'number')
-            self.postMessage({kind:'status', job, message:`AIファイル読み込み ${Math.round(progress.progress)}%`});
+            self.postMessage({kind:'status', job, message:t('ai.downloadProgress',{percent:Math.round(progress.progress)})});
         }
       });
     }
@@ -30,7 +31,7 @@ self.onmessage = async (event: MessageEvent<Request>) => {
         const boundary = Math.max(text.lastIndexOf('。',end), text.lastIndexOf('。',end-100), text.lastIndexOf('\n',end));
         if (boundary > start + 200 && boundary < end) end = boundary + 1;
       }
-      self.postMessage({kind:'status', job, message:`固有名詞を解析中 ${Math.round(start / Math.max(text.length,1)*100)}%`});
+      self.postMessage({kind:'status', job, message:t('ai.analysisProgress',{percent:Math.round(start / Math.max(text.length,1)*100)})});
       const segment=text.slice(start,end);
       const output = await classifier(segment, { ignore_labels: [] }) as NerEntity[];
       for (const item of alignTokens(segment,output)) items.push({...item,offset:start});
@@ -39,6 +40,6 @@ self.onmessage = async (event: MessageEvent<Request>) => {
     self.postMessage({kind:'result', job, items});
   } catch {
     // Do not send exception details: third-party errors can contain the source text.
-    self.postMessage({kind:'error', job, message:'モデルの取得または解析に失敗しました。通信・モデル配置を確認してください。'});
+    self.postMessage({kind:'error', job, message:t('ai.failed')});
   }
 };

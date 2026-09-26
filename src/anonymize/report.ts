@@ -1,3 +1,4 @@
+import { t } from '../content/text';
 import type { Candidate, Category } from '../detection/types';
 import { assignments, type Assignment } from './index';
 
@@ -16,7 +17,7 @@ export function mappingFromAssignments(spans: Assignment[]): MappingRow[] {
   return [...rows.values()];
 }
 
-const headings = ['元の文字列','置換先','種別','箇所数'];
+const headings = [t('column.original'),t('column.replacement'),t('column.category'),t('column.count')];
 function cells(row: MappingRow): string[] { return [row.original,row.replacement,row.category,String(row.count)]; }
 // Prevent spreadsheet programs from interpreting user text as a formula.
 function safeCell(value: string): string {

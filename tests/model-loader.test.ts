@@ -1,3 +1,4 @@
+import { t } from '../src/content/text';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModelLoader } from '../src/model/loader';
 vi.mock('../src/model/config',()=>({appBase:()=> 'https://example.test/site/'}));
@@ -23,13 +24,13 @@ describe('model lifecycle',()=>{
   });
   it('rejects cancelled analysis and ignores late messages',async()=>{
     const status=vi.fn();const result=loader.analyze('消去予定',status);
-    const assertion=expect(result).rejects.toThrow('中断');
+    const assertion=expect(result).rejects.toThrow(t('ai.cancelled'));
     const worker=FakeWorker.instances[0];loader.dispose();
     worker.reply('status',{message:'古い進捗'});worker.reply('result',{items:[]});
     await assertion;expect(status).not.toHaveBeenCalled();expect(worker.terminate).toHaveBeenCalledOnce();
   });
   it('cancels a concurrent job before starting another worker',async()=>{
-    const first=loader.analyze('旧',()=>{});const assertion=expect(first).rejects.toThrow('中断');
+    const first=loader.analyze('旧',()=>{});const assertion=expect(first).rejects.toThrow(t('ai.cancelled'));
     const second=loader.analyze('新',()=>{});await assertion;
     expect(FakeWorker.instances[0].terminate).toHaveBeenCalledOnce();
     FakeWorker.instances[1].reply('result',{items:[]});await second;
