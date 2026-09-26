@@ -23,7 +23,12 @@ const server = createServer(async (request,response) => {
     if (!details.isFile()) { response.writeHead(404).end(); return; }
     response.writeHead(200,{'Content-Type':mime[extname(file)] ?? 'application/octet-stream','Content-Length':details.size,'X-Content-Type-Options':'nosniff'});
     if (request.method === 'HEAD') response.end();
-    else createReadStream(file).pipe(response);
+    else {
+      const stream=createReadStream(file);
+      stream.on('error', () => response.destroy());
+      response.on('close', () => stream.destroy());
+      stream.pipe(response);
+    }
   } catch { response.writeHead(404).end(); }
 });
 

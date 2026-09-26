@@ -21,7 +21,7 @@ export function corporateId(value: string): boolean {
   const digits = value.replace(/[ -]/g, '');
   if (!/^\d{13}$/.test(digits) || /^(\d)\1+$/.test(digits)) return false;
   let sum = 0;
-  for (let i = 12; i >= 1; i--) sum += Number(digits[i]) * (i % 2 === 0 ? 2 : 1);
+  for (let i = 12; i >= 1; i--) sum += Number(digits[i]) * (i % 2 === 0 ? 1 : 2);
   return Number(digits[0]) === 9 - (sum % 9);
 }
 export function ipv4(value: string): boolean {

@@ -10,7 +10,7 @@
 4. 候補の表にある「一覧をコピー」は、実際にマスキングする元の文字列と置換先を表計算ソフトへ貼り付けやすい形式でコピーします。「CSVで保存」はCSV（表を保存するテキスト形式）をダウンロードします。コピーとCSVの種別は、置換後の `<ORG_01>` と対応する `ORG` などのコードで出力します。**元の機密情報を含む**ため、コピー先や保存先に注意してください。
 5. マスキング後のテキストを**全文目視確認**してから「コピー」または「TXTで保存」を押してください。TXT（文字だけのファイル）をPCへダウンロードできます。外部AIへ自動送信する機能はありません。
 
-同じ種別・同じ文字列は同じ番号を使います。たとえば同じ会社名が２回出ても両方 `<ORG_01>` です。重なった候補は手動→ルール→NER、同じ方法なら長い候補を優先して置換します。
+同じ種別・同じ文字列は同じ番号を使います。たとえば同じ会社名が２回出ても両方 `<ORG_01>` です。重なった候補は手動→ルール→NER、同じ方法なら長い候補を優先して置換します。テキストを変えずに再チェックした場合は、候補の解除・種別・置換先の編集を保持します。テキストを編集・消去すると処理中のAIチェックを中断し、古い結果は表示しません。
 
 ## 開発
 
@@ -41,10 +41,10 @@ WindowsでGitHubからソース一式をZIPでダウンロードした場合は�
 | tokenizer | 文章をモデルが扱える小さな単位に区切る部品 | モデルと一緒に取得します |
 
 - 形式が決まった情報のチェック：**外部通信なし**。入力テキストはLocalStorage、IndexedDB、Cookie、アクセス解析、ログへ保存しません。ページ再読込時に内容は消えます。
-- 拡張チェック：ブラウザは**同じサイトのGitLab Pages**からモデル、tokenizer、WASMを取得します。Hugging Faceへの取得はGitLab CIだけで行います。**入力テキストはPagesにも推論APIにも送信しません**。ブラウザや社内の配信基盤による通常のアクセスログには、静的ファイルのURLやIPアドレスが残る場合があります。
+- 拡張チェック：ブラウザは**同じサイトのGitLab Pages**からモデル、tokenizer、WASMを取得します。Hugging Faceからの取得はGitLab CIまたはGitHub Actionsでだけ行います。**入力テキストはPagesにも推論APIにも送信しません**。ブラウザや社内の配信基盤による通常のアクセスログには、静的ファイルのURLやIPアドレスが残る場合があります。
 - このPoCはモデルキャッシュを無効にしています。ページ再表示時には同じサイトからモデルを再取得する可能性がありますが、**CIをチェックのたびに実行する必要はありません**。入力テキストはブラウザ内メモリにのみ保持します。コピー後のクリップボード、明示的にダウンロードしたファイルの扱いは利用者のPCの設定に依存します。
 - CIのみモデル提供元へ通信します。利用者のPCはHugging Faceへ接続しません。業務文章はHTTPリクエストに含めません。
-- 外部フォント・解析タグ・外部AI APIは使いません。CSP（読み込み先を制限するブラウザ設定）の通信先を同じサイトだけに限定しています。配布先のHTTPヘッダーでも設定することを推奨します。
+- 外部フォント・解析タグ・外部AI APIは使いません。CSP（読み込み先を制限するブラウザ設定）の通信先を同じサイトだけに限定しています。配布先のHTTPヘッダーでも設定することを推奨します。WASMの実行には `script-src` の `'wasm-unsafe-eval'` が必要です。これはWASMの計算を許可する設定で、JavaScript文字列の実行を許す `'unsafe-eval'` は追加しません。Worker（画面と別に計算する仕組み）の配信応答へCSPを付ける場合も同じ点を確認してください。
 
 ## 使用モデルと限界
 
@@ -56,7 +56,7 @@ WindowsでGitHubからソース一式をZIPでダウンロードした場合は�
 
 `.gitlab-ci.yml` は `npm ci` → テスト → **CIでモデル取得・照合** → ビルドを実行し、既定ブランチの `dist/` をPagesに公開する例です。GitLabのPages機能・利用可能なNodeイメージ・npm/JFrogの接続許可が必要です。古いGitLabで `pages.publish` に対応しない場合は、CIで `dist/` の内容を公開用 `public/` にコピーする方式へ変更してください。相対パス配信用にViteの `base` は `./` にしています。
 
-`scripts/fetch-model.mjs` はGitLab CIでだけ実行でき、Hugging Faceの固定コミット `8d70fc4d277a84e59ccc70520ffd9daff66e66f0` から必要なモデルファイルを `public/models/jiting/xlm-roberta-ner-japanese_onnx/` に取得します。ONNX本体とtokenizerはSHA-256で検証します。`npm run build` がそれらを `dist/models/` に同梱します。取得に失敗するとCIが停止します。モデル本体はGitにコミットしません。**利用者のブラウザでは常に** `env.allowRemoteModels = false`、`env.allowLocalModels = true`、`env.localModelPath = <PagesのベースURL>/models/` です。
+`scripts/fetch-model.mjs` はCI（GitLab CIまたはGitHub Actions）でだけ実行でき、Hugging Faceの固定コミット `8d70fc4d277a84e59ccc70520ffd9daff66e66f0` から必要なモデルファイルを `public/models/jiting/xlm-roberta-ner-japanese_onnx/` に取得します。ONNX本体とtokenizerはSHA-256で検証します。`npm run build` がそれらを `dist/models/` に同梱します。取得に失敗するとCIが停止します。モデル本体はGitにコミットしません。**利用者のブラウザでは常に** `env.allowRemoteModels = false`、`env.allowLocalModels = true`、`env.localModelPath = <PagesのベースURL>/models/` です。
 
 将来JFrog経由にする場合は、CI変数 `MODEL_BASE_URL` に承認済みモデルの配布先ディレクトリURLを指定します。同じファイル構成とハッシュならアプリの変更は不要です。JFrogの認証が必要なら保護されたCI変数 `MODEL_AUTH_TOKEN` を設定します。Pagesの配布容量・アクセス制御・キャッシュ方針を確認してください。公開Pagesに置く場合、モデルは閲覧者にダウンロード可能です。
 
@@ -78,5 +78,8 @@ Actions成果物は実行時点のコードとモデルをまとめた配布物�
 | `typescript` | 型検査 | Apache-2.0 |
 | `vite` | 開発・ビルド | MIT |
 | `vitest` | テスト | MIT |
+| `happy-dom` | テスト時に画面の操作を再現（開発専用・配布物には含まれません） | MIT |
 
 依存する `onnxruntime-web` のライセンスはMITです。間接依存のライセンスは、社内配布前にロックファイルに基づき別途棚卸ししてください。fusejiのコードは使用していません。
+
+セルフレビューの修正内容・検証範囲・性能比較は [レビュー記録](docs/review-2026-09-26.md) を参照してください。

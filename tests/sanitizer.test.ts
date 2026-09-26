@@ -19,9 +19,9 @@ describe('rules', () => {
     expect(detectRules('123456789018').some(c=>c.category==='MYNUMBER')).toBe(true);
   });
   it('validates corporate ID check digit', () => {
-    expect(corporateId('1700110005901')).toBe(true);
+    expect(corporateId('8700110005901')).toBe(true);
     expect(corporateId('2700110005901')).toBe(false);
-    expect(detectRules('1700110005901').some(c=>c.category==='CORPORATE_ID')).toBe(true);
+    expect(detectRules('8700110005901').some(c=>c.category==='CORPORATE_ID')).toBe(true);
   });
   it('validates a Luhn card and rejects an invalid number', () => {
     expect(luhn('4111 1111 1111 1111')).toBe(true);

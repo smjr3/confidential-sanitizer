@@ -1,4 +1,5 @@
 import { candidate, type Candidate, type Category } from '../types';
+import { selectNonOverlapping } from '../overlap';
 import { corporateId, ipv4, luhn, myNumber } from '../validators';
 
 interface Rule { category: Category; pattern: RegExp; valid?: (value: string, context: string) => boolean; }
@@ -28,9 +29,6 @@ export function detectRules(text: string, extraRules: Rule[] = []): Candidate[] 
     }
   }
   // A URL or email contains a domain; present only the most specific rule.
-  const accepted: Candidate[] = [];
-  for (const item of found.sort((a,b)=>(b.end-b.start)-(a.end-a.start))) {
-    if (!accepted.some(c=>c.start < item.end && item.start < c.end)) accepted.push(item);
-  }
-  return accepted.sort((a,b)=>a.start-b.start);
+  return selectNonOverlapping(found.sort((a,b)=>(b.end-b.start)-(a.end-a.start)))
+    .sort((a,b)=>a.start-b.start);
 }

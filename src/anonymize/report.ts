@@ -1,10 +1,13 @@
 import type { Candidate, Category } from '../detection/types';
-import { assignments } from './index';
+import { assignments, type Assignment } from './index';
 
 export interface MappingRow { original: string; replacement: string; category: Category; count: number }
 export function mappingRows(candidates: Candidate[]): MappingRow[] {
+  return mappingFromAssignments(assignments(candidates));
+}
+export function mappingFromAssignments(spans: Assignment[]): MappingRow[] {
   const rows = new Map<string, MappingRow>();
-  for (const {candidate, replacement} of assignments(candidates)) {
+  for (const {candidate, replacement} of spans) {
     const key = `${candidate.category}\u0000${candidate.text}\u0000${replacement}`;
     const existing = rows.get(key);
     if (existing) existing.count++;
