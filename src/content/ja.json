@@ -1,6 +1,6 @@
 {
   "messages": {
-    "app.brand": "CONFIDENTIAL SANITIZER · PoC",
+    "app.brand": "CONFIDENTIAL SANITIZER",
     "app.title": "機密情報チェック・マスキング",
     "privacy.heading": "入力テキストは外部へ送信されません",
     "privacy.short": "処理はブラウザ内だけ。入力内容は保存しません。",

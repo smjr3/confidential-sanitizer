@@ -3,9 +3,17 @@ setlocal
 cd /d "%~dp0"
 where node >nul 2>&1
 if errorlevel 1 (
-  echo Node.js 22 or newer is required.
+  echo Node.js 22.12 or newer is required.
   pause
   exit /b 1
+)
+if not exist "src\main.ts" if exist "bin\confidential-sanitizer.mjs" (
+  node bin\confidential-sanitizer.mjs serve
+  if errorlevel 1 (
+    pause
+    exit /b 1
+  )
+  exit /b 0
 )
 if exist "package.json" (
   if not exist "package-lock.json" (

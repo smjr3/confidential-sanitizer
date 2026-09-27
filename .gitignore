@@ -5,3 +5,5 @@ public/models/
 public/wasm/*
 !public/wasm/.gitkeep
 *.log
+packages/
+*.tgz
