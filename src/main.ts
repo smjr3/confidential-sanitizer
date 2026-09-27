@@ -1,3 +1,4 @@
+import { setupRestore } from './ui/restore';
 import { detectRules } from './detection/regex';
 import { mapNerEntities } from './detection/ner';
 import { addManual } from './detection/manual';
@@ -66,6 +67,7 @@ const loader = new ModelLoader();
 let nerRun=0;
 let renderVersion=0;
 let report:MappingRow[]=[];
+const restore=setupRestore(()=>({rows:report,busy}),saveText);
 const table=new CandidateTable($('candidates'),()=>candidates,refresh,message=>{status.textContent=message;});
 function cancelNer():void {
   nerRun++;
@@ -137,6 +139,7 @@ function refresh(): void {
   $('candidates-empty').hidden=candidates.length>0;
   $<HTMLButtonElement>('copy-mapping').disabled=!report.length;
   $<HTMLButtonElement>('download-mapping').disabled=!report.length;
+  restore.updateAvailability();
 }
 function merge(incoming:Candidate[], methods:Method[]):void {
   candidates=mergeCandidates(candidates,incoming,methods);
@@ -192,7 +195,7 @@ $('check').addEventListener('click', async () => {
     merge([...detectRules(input),...entities.flatMap(item => mapNerEntities(input,[item],item.offset))],['rule','ner']);
     checkStatus.textContent=t('check.done');
   } catch(e) { if(run===nerRun && current===revision)checkStatus.textContent=t('check.partialError',{reason:e instanceof Error ? e.message : t('ai.failed')}); }
-  finally { if(run===nerRun){busy=false; ($<HTMLButtonElement>('check')).disabled=!source.value.trim(); $('check').textContent=t('button.check');} }
+  finally { if(run===nerRun){busy=false; ($<HTMLButtonElement>('check')).disabled=!source.value.trim(); $('check').textContent=t('button.check');restore.updateAvailability();} }
 });
 $('manual').addEventListener('click', () => {
   if (!selected) return;
@@ -229,5 +232,5 @@ $('download-txt').addEventListener('click', () => {
   saveText(t('file.output'),output.value,'text/plain;charset=utf-8');
   $('copy-feedback').textContent=t('output.saved');
 });
-$('clear').addEventListener('click', () => { revision++; cancelNer(); source.value=''; candidates=[]; checked=false; output.value=''; clearSelection(); status.textContent=t('status.cleared'); loader.dispose(); refresh(); setInputView(false); source.focus({preventScroll:true}); });
+$('clear').addEventListener('click', () => { revision++; cancelNer(); source.value=''; candidates=[]; checked=false; output.value=''; restore.clear(); clearSelection(); status.textContent=t('status.cleared'); loader.dispose(); refresh(); setInputView(false); source.focus({preventScroll:true}); });
 refresh();

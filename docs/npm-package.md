@@ -42,6 +42,10 @@ npx --no-install confidential-sanitizer serve --models ./models
 
 この `models` の直下には `jiting/xlm-roberta-ner-japanese_onnx/config.json` 等がある必要があります。モデルは同じローカルURLの `/models/` で配信されます。モデルがない場合、形式のチェック結果は残り、AIチェック未完了と表示されます。
 
+## 再置換する
+
+画面上部の「再置換」から、マスキング記号を元の文字列へ戻せます。現在の置換リストを引き継ぐか、このアプリで保存したCSVを読み込み、AIの回答を貼り付けて実行します。ブラウザ内で処理するため、モデルの配置は不要です。入力・対応表・結果はページを閉じると消えます。
+
 ## 静的サイトとして配布する
 
 ```sh

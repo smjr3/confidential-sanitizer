@@ -1,3 +1,4 @@
+import { CSV_FORMAT, CSV_FORMAT_HEADING } from '../restore';
 import { t } from '../content/text';
 import type { Candidate, Category } from '../detection/types';
 import { assignments, type Assignment } from './index';
@@ -24,7 +25,7 @@ function safeCell(value: string): string {
   return /^[\s\uFEFF]*[=+\-@]/u.test(value) ? `'${value}` : value;
 }
 export function mappingCsv(rows: MappingRow[]): string {
-  return [headings,...rows.map(cells)].map(row => row.map(value => `"${safeCell(value).replaceAll('"','""')}"`).join(',')).join('\r\n') + '\r\n';
+  return [[...headings,CSV_FORMAT_HEADING],...rows.map(row=>[...cells(row),CSV_FORMAT])].map(row => row.map(value => `"${(value.startsWith("'") ? "'"+value : safeCell(value)).replaceAll('"','""')}"`).join(',')).join('\r\n') + '\r\n';
 }
 export function mappingTsv(rows: MappingRow[]): string {
   return [headings,...rows.map(cells)].map(row => row.map(value => safeCell(value).replaceAll('\t','\\t').replaceAll('\r','\\r').replaceAll('\n','\\n')).join('\t')).join('\n');
