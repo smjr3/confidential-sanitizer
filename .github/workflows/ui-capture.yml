@@ -1,0 +1,41 @@
+name: Capture application screens
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ui-capture.yml'
+      - 'scripts/capture-ui.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install isolated browser test tools
+        run: npm install --prefix .ui-tools --no-package-lock --ignore-scripts --no-audit --no-fund playwright@1.62.1
+      - name: Install Chromium and Japanese fonts
+        run: |
+          node .ui-tools/node_modules/playwright/cli.js install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
+      - name: Capture real masking and restoration screens
+        run: node scripts/capture-ui.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: confidential-sanitizer-screens
+          path: |
+            ui-captures/*.png
+            ui-captures/verification.json
+          if-no-files-found: error
+          retention-days: 7
