@@ -3,12 +3,11 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
 import { startPreview } from './preview-server.mjs';
 
 const require = createRequire(import.meta.url);
 const playwrightEntry = require.resolve('playwright', { paths: [resolve('.ui-tools')] });
-const { chromium } = await import(pathToFileURL(playwrightEntry).href);
+const { chromium } = require(playwrightEntry);
 const directory = resolve('ui-captures');
 await mkdir(directory, { recursive: true });
 const { server, address } = await startPreview({ root: resolve('dist'), port: 0 });

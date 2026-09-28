@@ -32,6 +32,7 @@ jobs:
       - name: Capture real masking and restoration screens
         run: node scripts/capture-ui.mjs
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: confidential-sanitizer-screens
           path: |
