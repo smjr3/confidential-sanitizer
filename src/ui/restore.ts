@@ -50,6 +50,7 @@ export function setupRestore(getCurrent:()=>{rows:RestoreRow[];busy:boolean},sav
     active=true;switchView();controls();
   }
   function switchView():void {
+    $('app').dataset.mode=active?'restore':'mask';
     $('mask-workbar').hidden=active;$('mask-workspace').hidden=active;$('mask-statusbar').hidden=active;$('restore-screen').hidden=!active;
     $('mode-mask').setAttribute('aria-pressed',String(!active));$('mode-restore').setAttribute('aria-pressed',String(active));
     $<HTMLDetailsElement>('category-filter').open=false;
