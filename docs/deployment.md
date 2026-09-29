@@ -21,6 +21,9 @@ GitHub Pagesも同じソースとモデルを使います。`.github/workflows/p
 非公開の間もビルドとモデルの同梱確認は実行しますが、公開ジョブはスキップします。
 公開後は `main` の更新でも自動配置します。Pagesの設定前は公開ジョブが失敗するため、
 設定後に新しく **Run workflow** を実行してください。
+**非公開時の実行の「Re-run jobs」は使わないでください。** 当時のイベント情報が
+再利用され、Publicへ変更しても `deploy` がスキップされる場合があります。
+ワークフロー一覧から新しく **Run workflow** を押すか、`main` を更新してください。
 
 標準URLは `https://<所有者>.github.io/<リポジトリ名>/` です。
 相対パスを使用するため、GitLab版と別のアプリコードは不要です。
@@ -55,4 +58,3 @@ Actions成果物は実行時点のコードとモデルをまとめた配布物�
 **名前・組織名のチェックをローカルで使う場合：** GitHubのソースZIPにはモデルがないため、そのままでは使えません。すでに成果物をダウンロードしている場合は、次段落の方法でモデルをコピーできます。最新版のGitHub Actions「Check model build」を新たに実行した場合は、成果物ZIP `confidential-sanitizer-site` を展開して、そのフォルダの `preview.bat` を実行します。入力テキストをモデル確認用の通信へ含めません。
 
 **すでにダウンロードした成果物に `preview.bat` がない場合：** 古いActions実行から取得した成果物には起動ファイルがありません。その成果物にある `models` フォルダを、最新版ソースの `public` フォルダの中へコピーし、`public/models/jiting/xlm-roberta-ner-japanese_onnx/config.json` がある状態にしてください。その後、**ソース側の** `preview.bat` を起動します。モデルの取得やCIの再実行は不要です。`models` はGitにコミットされません。
-
