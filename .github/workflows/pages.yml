@@ -1,0 +1,60 @@
+name: Deploy GitHub Pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Fetch and verify model in CI only
+        run: node scripts/fetch-model.mjs
+      - run: npm run build
+      - name: Check complete site and Pages size limit
+        run: |
+          test -s dist/models/jiting/xlm-roberta-ner-japanese_onnx/onnx/model_quantized.onnx
+          test -s dist/models/jiting/xlm-roberta-ner-japanese_onnx/README.md
+          test -s dist/licenses/model-NOTICE.txt
+          test -s dist/wasm/ort-wasm-simd-threaded.wasm
+          test -s dist/favicon.svg
+          test "$(du -sb dist | cut -f1)" -lt 1000000000
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+          retention-days: 1
+
+  deploy:
+    # Private repositories can validate the full build before public release.
+    if: github.event.repository.private == false
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

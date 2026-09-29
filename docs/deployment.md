@@ -2,6 +2,38 @@
 
 この文書はリポジトリ内の設定例と既存成果物の移行手順です。npmパッケージには含めません。一般的な起動・配布方法は [npmパッケージの利用方法](npm-package.md) を参照してください。
 
+## GitHub Pagesへの公開
+
+GitHub Pagesも同じソースとモデルを使います。`.github/workflows/pages.yml` の
+**Deploy GitHub Pages** がテスト → CIでモデル取得・照合 → ビルド → 公開を行います。
+モデルはGitへコミットせず、利用者はアプリと同じサイトから取得します。
+入力テキストをGitHubやHugging Faceへ送る処理はありません。
+ただしサイトやモデルの取得時には、配信サービスへの通常のアクセスが発生します。
+
+初回は次の設定が必要です。
+
+1. 公開する内容・Git履歴・Actionsログと成果物を確認します。
+2. **Settings → General → Danger Zone → Change visibility → Public** に変更します。
+3. **Settings → Pages → Build and deployment → Source → GitHub Actions** を選びます。
+4. **Actions → Deploy GitHub Pages → Run workflow** を実行します。
+5. 成功した `deploy` ジョブに表示されるURLを開きます。
+
+非公開の間もビルドとモデルの同梱確認は実行しますが、公開ジョブはスキップします。
+公開後は `main` の更新でも自動配置します。Pagesの設定前は公開ジョブが失敗するため、
+設定後に新しく **Run workflow** を実行してください。
+
+標準URLは `https://<所有者>.github.io/<リポジトリ名>/` です。
+相対パスを使用するため、GitLab版と別のアプリコードは不要です。
+実際の公開URLでCSS・favicon・モデル・WASMの取得と検出、再置換を確認してください。
+
+Pages用成果物 `github-pages` は公開専用です。Windowsで試す場合は、従来の
+**Check model build** の `confidential-sanitizer-site` を使用してください。
+
+配布時は `licenses/` とモデル横の `README.md` も保持してください。
+サイトは1GB未満であることをCIで検査します。モデル配信によって転送量が増えるため、
+GitHub Pagesの容量・帯域制限を確認してください。
+モデルを更新しない通常利用でCIの再実行は不要です。
+
 ## GitLab Pagesへの配置
 
 `.gitlab-ci.yml` は `npm ci` → テスト → **CIでモデル取得・照合** → ビルドを実行し、既定ブランチの `dist/` をPagesに公開する例です。GitLabのPages機能・利用可能なNodeイメージ・npm/JFrogの接続許可が必要です。古いGitLabで `pages.publish` に対応しない場合は、CIで `dist/` の内容を公開用 `public/` にコピーする方式へ変更してください。相対パス配信用にViteの `base` は `./` にしています。favicon（ブラウザのタブに表示するアイコン）は `public/favicon.svg` から配布物へコピーされ、同じサイトの相対パスで読み込みます。

@@ -1,4 +1,4 @@
-// GitLab CI fetches model assets once. Browser code cannot contact the model host.
+// CI fetches model assets during builds. Browser code cannot contact the model host.
 import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, rename, rm, stat } from 'node:fs/promises';
@@ -14,6 +14,7 @@ const source = process.env.MODEL_BASE_URL ?? `https://huggingface.co/${modelId}/
 const base = new URL(source.endsWith('/') ? source : `${source}/`);
 const destination = join('public', 'models', modelId);
 const files = [
+  {path:'README.md'},
   {path:'config.json'},
   {path:'tokenizer_config.json'},
   {path:'special_tokens_map.json'},
