@@ -25,12 +25,14 @@ GitHubだけで作る場合は **Actions → Build npm package → Run workflow*
 
 ## 利用者：ローカルで確認する
 
-Node.js 22.12以上が必要です。ダウンロードした `.tgz` を空の作業フォルダへ置き、そのフォルダで実行します。
+Node.js 22.12以上が必要です。空の作業フォルダを作り、そのフォルダで実行します。npmjs.com に公開済みのパッケージを取得します。
 
 ```sh
-npm install --no-audit --no-fund ./confidential-sanitizer-0.1.0.tgz
+npm install --no-audit --no-fund confidential-sanitizer
 npx --no-install confidential-sanitizer serve
 ```
+
+ダウンロードした `.tgz` を使う場合は、1行目を `npm install --no-audit --no-fund ./confidential-sanitizer-0.1.0.tgz` に置き換えます。
 
 表示された `http://127.0.0.1:4173/` を開きます。終了はCtrl+Cです。Windowsではインストール後の `node_modules/confidential-sanitizer/preview.bat` でも起動できます。追加のnpm取得やビルドは行いません。
 
@@ -56,9 +58,18 @@ npx --no-install confidential-sanitizer export ./site
 
 配布を自動化する場合は、CI（配布物の作成などを自動実行する環境）でパッケージを取得し、`export` を実行します。その後、用意したモデルを `site/models/` へ配置し、`site` の内容を配信先へ配置します。
 
-## npmレジストリへの登録
+## npmjs.com への公開
 
-`npm run package` はファイルを作成するだけで、レジストリへ公開しません。配布する場合は、利用するnpmレジストリの手順に従い、パッケージ名とアクセス範囲を設定して `.tgz` を登録します。NERモデルはパッケージとは別に配置します。
+パッケージ名 `confidential-sanitizer` で npmjs.com に公開します。`npm run package` はファイルを作成するだけで、公開はGitHub Actionsの「Publish to npm」が行います。NERモデルはパッケージとは別に配置します。
+
+1. 新しい版を出すときは、`package.json` の `version` を上げて main に反映します。同じ版は二度公開できません。
+2. **Actions → Publish to npm → Run workflow** を押します。既定は確認だけの試し実行（dry run）で、何も公開しません。公開するときは「Build and check only; do not upload」のチェックを外して実行します。
+3. ワークフローは `npm run package` と `npm run test:package` で検証した `.tgz` を、そのまま `npm publish --provenance` で公開します。npmjs.com のページに、どのコミットから作ったかの証明（provenance）が表示されます。GitHub で `v<version>` のタグのリリースを公開したときも同じ処理が動きます。
+
+認証は次のどちらかです。
+
+- **初回**：npmjs.com で作った Granular Access Token をリポジトリの Secret `NPM_TOKEN` に登録します。権限は Packages and scopes を「Read and write (publish and stage)」、Organizations を「No access」、「Bypass two-factor authentication (2FA)」をオンにします。
+- **2回目以降（推奨）**：npmjs.com のパッケージ設定 → Trusted Publisher で GitHub Actions を選び、`smjr3` / `confidential-sanitizer` / `npm-publish.yml` を登録します。Environment name は空欄、「Allow npm publish」にチェックします。登録後は `NPM_TOKEN` と npm 側のトークンを削除します。
 
 ## 保守と確認範囲
 
