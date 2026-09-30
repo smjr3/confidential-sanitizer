@@ -69,12 +69,16 @@ let renderVersion=0;
 let report:MappingRow[]=[];
 const restore=setupRestore(()=>({rows:report,busy}),saveText);
 const table=new CandidateTable($('candidates'),()=>candidates,refresh,message=>{status.textContent=message;});
+function updateCheckButtons():void {
+  for(const id of ['check','check-ai'])$<HTMLButtonElement>(id).disabled=busy || !source.value.trim();
+  $('check').textContent=t('button.check');
+  $('check-ai').textContent=t(busy?'button.checking':'button.checkAi');
+}
 function cancelNer():void {
   nerRun++;
   if(busy)loader.dispose();
   busy=false;
-  $<HTMLButtonElement>('check').disabled=!source.value.trim();
-  $<HTMLButtonElement>('check').textContent=t('button.check');
+  updateCheckButtons();
   checkStatus.textContent='';
 }
 const selectedCategories = new Set<Category>(CATEGORIES);
@@ -103,7 +107,7 @@ $('clear-all-categories').addEventListener('click', () => setAllCategories(false
 
 function refresh(): void {
   renderVersion++;
-  $<HTMLButtonElement>('check').disabled=busy || !source.value.trim();
+  updateCheckButtons();
   $('length').textContent = t('input.length',{count:source.value.length,max:MAX_LENGTH});
   $('category-filter-count').textContent = selectedCategories.size === CATEGORIES.length ? t('filter.all') : t('filter.selected',{count:selectedCategories.size});
   const effective = withCategories(candidates, selectedCategories);
@@ -169,11 +173,10 @@ function captureSelection(): void {
 $('highlight').addEventListener('mouseup',captureSelection);
 $('highlight').addEventListener('keyup',captureSelection);
 source.addEventListener('input', () => { revision++; cancelNer(); candidates=[]; checked=false; clearSelection(); status.textContent=t('status.changed'); refresh(); });
-$('check').addEventListener('click', async () => {
+async function runCheck(withAi:boolean):Promise<void> {
   if (busy || !source.value.trim()) return;
   busy=true;
-  ($<HTMLButtonElement>('check')).disabled=true;
-  $('check').textContent=t('button.checking');
+  updateCheckButtons();
   status.textContent='';
   const current = revision;
   const run=++nerRun;
@@ -183,6 +186,7 @@ $('check').addEventListener('click', async () => {
   merge(detectRules(input),['rule']);
   clearSelection();
   try {
+    if(!withAi){checkStatus.textContent=t('check.rulesDone');return;}
     checkStatus.textContent=t('check.preparing');
     const available=await modelAvailable(appBase());
     if(run!==nerRun || current!==revision)return;
@@ -195,8 +199,10 @@ $('check').addEventListener('click', async () => {
     merge([...detectRules(input),...entities.flatMap(item => mapNerEntities(input,[item],item.offset))],['rule','ner']);
     checkStatus.textContent=t('check.done');
   } catch(e) { if(run===nerRun && current===revision)checkStatus.textContent=t('check.partialError',{reason:e instanceof Error ? e.message : t('ai.failed')}); }
-  finally { if(run===nerRun){busy=false; ($<HTMLButtonElement>('check')).disabled=!source.value.trim(); $('check').textContent=t('button.check');restore.updateAvailability();} }
-});
+  finally { if(run===nerRun){busy=false;updateCheckButtons();restore.updateAvailability();} }
+}
+$('check').addEventListener('click',()=>{void runCheck(false);});
+$('check-ai').addEventListener('click',()=>{void runCheck(true);});
 $('manual').addEventListener('click', () => {
   if (!selected) return;
   const found = addManual(source.value,selected.start,selected.end,'OTHER');

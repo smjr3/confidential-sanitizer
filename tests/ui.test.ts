@@ -31,7 +31,7 @@ it('keeps edited rows attached, preserving the following checkbox click and rech
   expect(el('candidates').children[1].querySelector('input[type=checkbox]')).toBe(nextCheckbox);
   nextCheckbox.click();
   expect(el('output').value).toBe('<CUSTOM> b@example.com');
-  click('check');await tick();expect(el('output').value).toBe('<CUSTOM> b@example.com');expect(mocked.available).toHaveBeenCalledTimes(2);
+  click('check');await tick();expect(el('output').value).toBe('<CUSTOM> b@example.com');expect(mocked.available).not.toHaveBeenCalled();
 });
 it('preserves Japanese category filtering, combined counts and same-value placeholders',()=>{
   input('a@example.com a@example.com 10.20.1.10');click('check');
@@ -50,23 +50,23 @@ it('manually adds all selected occurrences and treats pasted markup as text',()=
 });
 it('does not start inference after input is cleared during availability check',async()=>{
   let finish!:(available:boolean)=>void;mocked.available.mockReturnValue(new Promise<boolean>(r=>{finish=r;}));
-  input('山田太郎');click('check');click('clear');finish(true);await tick();
+  input('山田太郎');click('check-ai');click('clear');finish(true);await tick();
   expect(mocked.analyze).not.toHaveBeenCalled();expect(el('output').value).toBe('');expect(el('status').textContent).toBe(t('status.cleared'));
 });
 it('ignores stale errors and progress while a newer AI request is running',async()=>{
   mocked.available.mockResolvedValue(true);let reject!:(reason:Error)=>void;let status!:(value:string)=>void;
   mocked.analyze.mockImplementationOnce((_text,callback)=>{status=callback;return new Promise((_r,j)=>{reject=j;});});
-  input('山田太郎');click('check');await tick();
-  input('佐藤');mocked.analyze.mockReturnValueOnce(new Promise(()=>{}));click('check');await tick();
+  input('山田太郎');click('check-ai');await tick();
+  input('佐藤');mocked.analyze.mockReturnValueOnce(new Promise(()=>{}));click('check-ai');await tick();
   const current=el('check-status').textContent;status('古い進捗');reject(new Error('古いエラー'));await tick();
   expect(el('check-status').textContent).toBe(current);expect(el('check').disabled).toBe(true);
 });
-it('integrates AI results and preserves them during a unified recheck',async()=>{
+it('integrates AI results and preserves them during a rule-only recheck',async()=>{
   mocked.available.mockResolvedValue(true);
   mocked.analyze.mockResolvedValue([{entity_group:'PER',start:0,end:4,offset:0,score:.9}]);
-  input('山田太郎 a@example.com');click('check');await tick();
+  input('山田太郎 a@example.com');click('check-ai');await tick();
   expect(el('output').value).toBe('<PERSON_01> <EMAIL_01>');
-  click('check');await tick();expect(el('output').value).toBe('<PERSON_01> <EMAIL_01>');expect(mocked.analyze).toHaveBeenCalledTimes(2);
+  click('check');await tick();expect(el('output').value).toBe('<PERSON_01> <EMAIL_01>');expect(mocked.analyze).toHaveBeenCalledTimes(1);
 });
 it('copies the output and the combined mapping using category codes',async()=>{
   const copy=vi.fn().mockResolvedValue(undefined);Object.defineProperty(window.navigator,'clipboard',{value:{writeText:copy}});
@@ -132,14 +132,14 @@ it('opens the help as a dialog and closes with its button, Escape and backdrop',
 it('keeps detection method and confidence visible in the compact table',async()=>{
   mocked.available.mockResolvedValue(true);
   mocked.analyze.mockResolvedValue([{entity_group:'PER',start:0,end:4,offset:0,score:.9}]);
-  input('山田太郎');click('check');await tick();
+  input('山田太郎');click('check-ai');await tick();
   const row=el('candidates').children[0];
   expect(row.children.length).toBe(5);expect(row.querySelector('.detection-method').textContent).toContain('90%');
   expect(row.querySelector('select').title).toBe(CATEGORY_LABELS.PERSON);
   row.querySelector('select').value='OTHER';change(row.querySelector('select'));
   expect(el('output').value).toBe('<OTHER_01>');
 });
-it('loads AI only when the unified check is clicked and displays progress beside it',async()=>{
+it('loads AI only when the dedicated AI check is clicked and displays progress beside it',async()=>{
   expect(mocked.available).not.toHaveBeenCalled();expect(mocked.analyze).not.toHaveBeenCalled();
   expect(window.document.getElementById('ner')).toBe(null);
   expect(window.document.querySelector('.workbar-hint')).toBe(null);
@@ -147,26 +147,38 @@ it('loads AI only when the unified check is clicked and displays progress beside
   mocked.available.mockResolvedValue(true);
   let finish!:(result:object[])=>void;
   mocked.analyze.mockImplementation((_text,onStatus)=>{onStatus('固有名詞を解析中 42%');return new Promise(r=>{finish=r;});});
-  click('check');expect(el('output').value).toContain('<EMAIL_01>');await tick();
-  expect(el('check').disabled).toBe(true);expect(el('check-status').parentElement).toBe(el('check').parentElement);
+  click('check-ai');expect(el('output').value).toContain('<EMAIL_01>');await tick();
+  expect(el('check').disabled).toBe(true);expect(el('check-ai').disabled).toBe(true);expect(el('check-status').parentElement).toBe(el('check-ai').parentElement);
   expect(el('check-status').textContent).toContain('42%');expect(el('status').textContent).not.toContain('42%');
   finish([{entity_group:'PER',start:0,end:4,offset:0,score:.9}]);await tick();
   expect(el('output').value).toBe('<PERSON_01> <EMAIL_01>');expect(el('check').disabled).toBe(false);
   expect(el('check-status').textContent).toBe(t('check.done'));
 });
 it('retains rule results and identifies incomplete AI checks when the model is missing or fails',async()=>{
-  input('a@example.com');click('check');await tick();
+  input('a@example.com');click('check-ai');await tick();
   expect(el('output').value).toBe('<EMAIL_01>');expect(el('check-status').textContent).toBe(t('check.modelMissing'));
   expect(el('check').disabled).toBe(false);
   mocked.available.mockResolvedValue(true);mocked.analyze.mockRejectedValue(new Error('解析エラー'));
-  click('check');await tick();
+  click('check-ai');await tick();
   expect(el('output').value).toBe('<EMAIL_01>');expect(el('check-status').textContent).toBe(t('check.partialError',{reason:'解析エラー'}));
   expect(el('check').disabled).toBe(false);
 });
 it('does not start a check for empty input or duplicate clicks while busy',async()=>{
-  expect(el('check').disabled).toBe(true);click('check');expect(mocked.available).not.toHaveBeenCalled();
+  expect(el('check').disabled).toBe(true);click('check-ai');expect(mocked.available).not.toHaveBeenCalled();
   input('  ');expect(el('check').disabled).toBe(true);
   input('a@example.com');mocked.available.mockReturnValue(new Promise(()=>{}));
-  click('check');click('check');expect(mocked.available).toHaveBeenCalledTimes(1);
+  click('check-ai');click('check-ai');expect(mocked.available).toHaveBeenCalledTimes(1);
   click('clear');expect(el('check-status').textContent).toBe('');expect(el('check').disabled).toBe(true);
+});
+
+it('runs rule-only checks without contacting or loading the AI model',()=>{
+  expect(el('check').disabled).toBe(true);expect(el('check-ai').disabled).toBe(true);
+  input('連絡先 a@example.com 接続先 10.20.1.10');
+  expect(el('check').disabled).toBe(false);expect(el('check-ai').disabled).toBe(false);
+  click('check');
+  expect(el('output').value).toBe('連絡先 <EMAIL_01> 接続先 <IP_01>');
+  expect(el('highlight').querySelectorAll('mark').length).toBe(2);
+  expect(el('check-status').textContent).toBe(t('check.rulesDone'));
+  expect(mocked.available).not.toHaveBeenCalled();expect(mocked.analyze).not.toHaveBeenCalled();
+  click('clear');expect(el('check').disabled).toBe(true);expect(el('check-ai').disabled).toBe(true);
 });

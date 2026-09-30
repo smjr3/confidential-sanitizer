@@ -28,3 +28,7 @@
 .output-panel textarea { color: var(--output-text); }
 #app[data-mode="restore"] .section-heading { background: var(--wash); }
 #app[data-mode="restore"] .data-table th { background: var(--wash); }
+
+/* Keep both independent checks and AI progress in the existing action bar. */
+.check-action { flex-wrap: wrap; }
+#check-status { flex: 1; min-width: 180px; }
