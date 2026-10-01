@@ -1,0 +1,72 @@
+# Publishes confidential-sanitizer to npmjs.org with provenance.
+#
+# Run it from Actions → Publish to npm → Run workflow. It defaults to a dry run,
+# which builds, tests and checks the package but uploads nothing; untick it to
+# publish. Publishing a GitHub release tagged v<package.json version> also runs it.
+#
+# Authentication: npm trusted publishing (OIDC) once configured for this package
+# on npmjs.com, otherwise the NPM_TOKEN repository secret. The first publish needs
+# the token, because trusted publishing can only be set up on an existing package.
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Build and check only; do not upload
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  # Provenance and trusted publishing both authenticate with the job's OIDC token.
+  id-token: write
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Node 24 ships npm 11, which trusted publishing requires.
+          node-version: '24'
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Check the release tag matches package.json
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          node -e '
+            const version = JSON.parse(require("fs").readFileSync("package.json", "utf8")).version;
+            if (process.env.TAG !== `v${version}`) {
+              console.error(`Release tag ${process.env.TAG} does not match package.json version v${version}`);
+              process.exit(1);
+            }'
+
+      - run: npm ci
+      # Runs the tests and the build (prepack), then writes packages/<name>-<version>.tgz.
+      - run: npm run package
+      - run: npm run test:package
+
+      # Publish the exact tarball test:package just checked.
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
+        run: |
+          tarball="./packages/$(node -p 'const p = require("./package.json"); `${p.name}-${p.version}.tgz`')"
+          if [ "$DRY_RUN" = "true" ]; then
+            npm publish "$tarball" --provenance --access public --dry-run
+          else
+            npm publish "$tarball" --provenance --access public
+          fi

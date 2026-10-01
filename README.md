@@ -104,7 +104,7 @@ AIを使う場合は、別配布のモデル一式を公開フォルダの `mode
 
 画面・検出処理・ブラウザ内AIの実行プログラムをnpmパッケージにまとめられます。学習済みモデルとtokenizerは含めず、別途配置します。配布パッケージのインストール時に追加のnpm依存パッケージやモデルを取得する処理はありません。
 
-`npm run package` で `packages/confidential-sanitizer-0.1.0.tgz` を作成できます。GitHub Actionsの「Build npm package」からもダウンロードできます。npmレジストリへの公開は行いません。詳しくは [npmパッケージの作成・利用方法](docs/npm-package.md) を参照してください。
+npmjs.com に `confidential-sanitizer` として公開しています（`npm install confidential-sanitizer`）。`npm run package` で `packages/confidential-sanitizer-0.1.0.tgz` を作成でき、GitHub Actionsの「Build npm package」からもダウンロードできます。公開はGitHub Actionsの「Publish to npm」で行います。詳しくは [npmパッケージの作成・利用方法](docs/npm-package.md) を参照してください。
 
 ## 画面の文言を編集する
 

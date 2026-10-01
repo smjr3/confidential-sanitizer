@@ -28,6 +28,10 @@
     "type": "git",
     "url": "git+https://github.com/smjr3/confidential-sanitizer.git"
   },
+  "homepage": "https://github.com/smjr3/confidential-sanitizer#readme",
+  "bugs": {
+    "url": "https://github.com/smjr3/confidential-sanitizer/issues"
+  },
   "engines": {
     "node": ">=22.12.0"
   },
