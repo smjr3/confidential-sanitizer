@@ -82,13 +82,29 @@ try {
   await page.locator('#restore-input').fill(answer);
   await page.locator('#restore-run').click();
   assert.equal(await page.locator('#restore-output').inputValue(), restored);
+  // Reuse the actual exported CSV on the masking side, before a new document.
+  await page.locator('#mode-mask').click();
+  await page.locator('#clear').click();
+  await page.locator('#import-open').click();
+  await page.locator('#import-file').setInputFiles(csvPath);
+  await page.waitForFunction(() => document.getElementById('import-summary').textContent.startsWith('CSV：'));
+  await page.locator('#import-close').click();
+  await page.locator('#source').fill(input);
+  await page.locator('#check').click();
+  assert.equal(await page.locator('#output').inputValue(), masked);
+  assert.equal(await page.locator('#candidates tr').count(), originals.length);
+  await page.locator('#clear').click();
+  await page.locator('#source').fill('株式会社サンプルへ連絡');
+  await page.locator('#check').click();
+  assert.equal(await page.locator('#output').inputValue(), token('株式会社サンプル')+'へ連絡');
+  assert.equal(await page.evaluate(() => window.scrollY), 0);
   assert.deepEqual(errors, []);
   assert.deepEqual(externalRequests, []);
   await writeFile(resolve(directory,'verification.json'), JSON.stringify({
     commit: process.env.GITHUB_SHA ?? null,
     browser: browser.version(), viewport: { width:1600,height:940 },
     fixture: 'fictional', modelLoaded: false, detection: 'real rules and manual additions',
-    restoredOccurrences: 7, csvRoundTrip: true, externalRequests: 0, pageErrors: 0
+    restoredOccurrences: 7, csvRoundTrip: true, maskingCsvReuse: true, externalRequests: 0, pageErrors: 0
   }, null, 2) + '\n');
   console.log('Captured masking and restoration. CSV round-trip verified. No external requests or page errors.');
 } finally {

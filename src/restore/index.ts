@@ -1,7 +1,7 @@
 import { t } from '../content/text';
 import { MAX_LENGTH } from '../security/policy';
 
-export interface RestoreRow { original: string; replacement: string }
+export interface RestoreRow { original: string; replacement: string; category?: string }
 export const MAX_CSV_BYTES = 2 * 1024 * 1024;
 const MAX_ROWS = 5000;
 export const CSV_FORMAT = 'literal-v1';
@@ -32,6 +32,7 @@ export function parseMappingCsv(text: string, removeLegacyProtection = false): {
   const original = headings.findIndex(h=>['元の文字列',t('column.original'),'original'].includes(h));
   const replacement = headings.findIndex(h=>['置換先',t('column.replacement'),'replacement'].includes(h));
   const format = headings.indexOf(CSV_FORMAT_HEADING);
+  const category = headings.findIndex(h=>['種別',t('column.category'),'category'].includes(h));
   if(original < 0 || replacement < 0 || original === replacement || new Set(headings).size !== headings.length) throw new Error(t('restore.csvHeader'));
   let legacyProtected=false;
   const rows:RestoreRow[]=[];
@@ -43,7 +44,7 @@ export function parseMappingCsv(text: string, removeLegacyProtection = false): {
   for (const values of records) {
     if(values.length===1 && values[0]==='') continue;
     if(values.length !== headings.length || (format >= 0 && values[format] !== CSV_FORMAT)) throw new Error(t('restore.csvInvalid'));
-    rows.push({ original:decode(values[original],format>=0), replacement:decode(values[replacement],format>=0) });
+    rows.push({ original:decode(values[original],format>=0), replacement:decode(values[replacement],format>=0), ...(category>=0 ? {category:values[category]} : {}) });
   }
   validateRows(rows);
   return {rows,legacyProtected};

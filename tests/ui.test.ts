@@ -182,3 +182,81 @@ it('runs rule-only checks without contacting or loading the AI model',()=>{
   expect(mocked.available).not.toHaveBeenCalled();expect(mocked.analyze).not.toHaveBeenCalled();
   click('clear');expect(el('check').disabled).toBe(true);expect(el('check-ai').disabled).toBe(true);
 });
+
+async function importCsv(csv:string) {
+  Object.defineProperty(el('import-file'),'files',{configurable:true,value:[{name:'顧客リスト.csv',size:new TextEncoder().encode(csv).length,text:async()=>csv}]});
+  change(el('import-file'));await tick();
+}
+const customerCsv='元の文字列,置換先,種別\n株式会社サンプル,<ORG_07>,ORG\n';
+it('imports before text, keeps mappings across documents and clear, and restores the output',async()=>{
+  await importCsv(customerCsv);expect(el('import-open').textContent).toContain('1件');
+  input('株式会社サンプルへ連絡。株式会社サンプル');click('check');
+  expect(el('output').value).toBe('<ORG_07>へ連絡。<ORG_07>');
+  expect(el('highlight').querySelectorAll('mark')).toHaveLength(2);
+  expect(el('candidates').querySelector('.detection-method').textContent).toBe(t('method.import'));
+  click('open-restore-current');el('restore-input').value='<ORG_07>へ回答';el('restore-input').dispatchEvent(new window.Event('input'));click('restore-run');
+  expect(el('restore-output').value).toBe('株式会社サンプルへ回答');click('mode-mask');
+  click('clear');input('次の文章：株式会社サンプル');click('check');
+  expect(el('output').value).toBe('次の文章：<ORG_07>');
+  expect(mocked.available).not.toHaveBeenCalled();expect(mocked.analyze).not.toHaveBeenCalled();
+  click('import-clear');expect(el('output').value).toBe('次の文章：株式会社サンプル');
+  expect(el('import-open').textContent).toBe(t('import.button'));
+});
+it('applies imports to current text and preserves exclusion, edits and category filters on recheck',async()=>{
+  input('a@example.com 株式会社サンプル');click('check');
+  await importCsv('元の文字列,置換先,種別\na@example.com,<EMAIL_08>,EMAIL');
+  expect(el('output').value).toBe('<EMAIL_08> 株式会社サンプル');
+  expect(el('candidates').children.length).toBe(1);
+  const row=el('candidates').children[0];row.querySelector('input[type=checkbox]').click();
+  click('check');expect(el('output').value).toBe('a@example.com 株式会社サンプル');
+  row.querySelector('input[type=checkbox]').click();
+  const replacement=row.querySelector('input[type=text]');replacement.value='<CONTACT>';change(replacement);
+  click('check');expect(el('output').value).toBe('<CONTACT> 株式会社サンプル');
+  (window.document.querySelector('input[value=EMAIL]') as any).click();expect(el('output').value).toBe('a@example.com 株式会社サンプル');
+});
+it('retains imported results on missing or failed AI and reserves unused imported tokens',async()=>{
+  await importCsv(customerCsv+'別会社,<ORG_01>,ORG\n');
+  input('株式会社サンプル 新会社');click('check-ai');await tick();
+  expect(el('output').value).toBe('<ORG_07> 新会社');
+  mocked.available.mockResolvedValue(true);mocked.analyze.mockResolvedValue([{entity_group:'ORG',start:9,end:12,offset:0,score:.9}]);
+  click('check-ai');await tick();expect(el('output').value).toBe('<ORG_07> <ORG_02>');
+  mocked.analyze.mockRejectedValue(new Error('解析エラー'));click('check-ai');await tick();
+  expect(el('output').value).toBe('<ORG_07> <ORG_02>');
+});
+it('atomically replaces lists and leaves existing mappings untouched after invalid imports',async()=>{
+  input('株式会社サンプル 顧客B');await importCsv(customerCsv);
+  const before=el('output').value;
+  await importCsv('original,replacement\n同じ名前,<ORG_01>\n同じ名前,<ORG_02>');
+  expect(el('output').value).toBe(before);expect(el('import-status').textContent).toContain('変更していません');
+  await importCsv('original,replacement\n顧客B,<ORG_03>');
+  expect(el('output').value).toBe('株式会社サンプル <ORG_03>');
+});
+it('ignores a pending file read after the loaded list is cleared',async()=>{
+  await importCsv(customerCsv);
+  let finish!:(text:string)=>void;
+  Object.defineProperty(el('import-file'),'files',{configurable:true,value:[{name:'pending.csv',size:100,text:()=>new Promise<string>(resolve=>{finish=resolve;})}]});
+  change(el('import-file'));click('import-clear');finish(customerCsv);await tick();
+  input('株式会社サンプル');click('check');expect(el('output').value).toBe('株式会社サンプル');
+  expect(el('import-open').textContent).toBe(t('import.button'));
+});
+it('cancels pending AI on successful import and ignores stale inference',async()=>{
+  mocked.available.mockResolvedValue(true);let finish!:(entities:object[])=>void;
+  mocked.analyze.mockReturnValue(new Promise<object[]>(resolve=>{finish=resolve;}));
+  input('株式会社サンプル');click('check-ai');await tick();await importCsv(customerCsv);
+  finish([{entity_group:'ORG',start:0,end:8,offset:0,score:.9}]);await tick();
+  expect(el('output').value).toBe('<ORG_07>');expect(el('check').disabled).toBe(false);
+  expect(el('candidates').children.length).toBe(1);
+});
+it('supports legacy protection explicitly and keeps imported HTML as plain text',async()=>{
+  input('=secret <img src=x>');
+  await importCsv('元の文字列,置換先\n\'=secret,<OTHER_01>\n<img src=x>,<OTHER_02>');
+  expect(el('output').value).toBe('=secret <OTHER_02>');
+  expect(el('import-rows').querySelector('img')).toBe(null);
+  el('import-legacy-check').click();expect(el('output').value).toBe('<OTHER_01> <OTHER_02>');
+});
+it('opens and closes the import dialog without switching input views',()=>{
+  click('import-open');expect(el('import-dialog').open).toBe(true);
+  el('import-dialog').dispatchEvent(new window.Event('cancel',{cancelable:true}));
+  expect(el('import-dialog').open).toBe(false);expect(window.document.activeElement).toBe(el('import-open'));
+  expect(el('edit-pane').hidden).toBe(false);
+});

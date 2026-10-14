@@ -2,7 +2,7 @@ import catalog from '../content/ja.json';
 export const CATEGORIES = ['PERSON','ORG','LOCATION','FACILITY','PRODUCT','SYSTEM','PROJECT','EMAIL','PHONE','IP','URL','HOST','DOMAIN','POSTAL','MYNUMBER','CORPORATE_ID','CREDIT_CARD','OTHER'] as const;
 export type Category = typeof CATEGORIES[number];
 export const CATEGORY_LABELS: Record<Category,string> = catalog.categories;
-export type Method = 'rule' | 'ner' | 'manual';
+export type Method = 'rule' | 'ner' | 'manual' | 'import';
 export interface Candidate {
   id: string;
   start: number;

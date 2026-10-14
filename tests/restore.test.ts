@@ -33,11 +33,11 @@ describe('mapping CSV import',()=>{
     const values=['日本語,"引用"\r\n改行','=SUM(1,1)',"'=original","''quote",'+123',' -123','@text','<script>alert(1)</script>'];
     const rows:MappingRow[]=values.map((original,i)=>({original,replacement:i%2 ? "'="+i : `<OTHER_${i}>`,category:'OTHER',count:1}));
     const parsed=parseMappingCsv('\uFEFF'+mappingCsv(rows));
-    expect(parsed.rows).toEqual(rows.map(({original,replacement})=>({original,replacement})));expect(parsed.legacyProtected).toBe(false);
+    expect(parsed.rows).toEqual(rows.map(({original,replacement,category})=>({original,replacement,category})));expect(parsed.legacyProtected).toBe(false);
   });
   it('reads older four-column exports without dropping literal apostrophes',()=>{
     const csv='"元の文字列","置換先","種別","箇所数"\r\n"\'=1","<OTHER_01>","OTHER","1"\r\n';
-    expect(parseMappingCsv(csv)).toEqual({rows:[{original:"'=1",replacement:'<OTHER_01>'}],legacyProtected:true});
+    expect(parseMappingCsv(csv)).toEqual({rows:[{original:"'=1",replacement:'<OTHER_01>',category:'OTHER'}],legacyProtected:true});
     expect(parseMappingCsv(csv,true).rows[0].original).toBe('=1');
   });
   it('accepts BOM, LF, empty trailing records and the essential columns',()=>{

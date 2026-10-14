@@ -32,3 +32,5 @@
 /* Keep both independent checks and AI progress in the existing action bar. */
 .check-action { flex-wrap: wrap; }
 #check-status { flex: 1; min-width: 180px; }
+
+.import-actions{display:flex;gap:8px;flex-wrap:wrap}.import-table-scroll{max-height:35dvh;overflow:auto}.import-table-scroll td{white-space:pre-wrap}#import-status{color:var(--accent);overflow-wrap:anywhere}#import-summary{overflow-wrap:anywhere}.preview mark[data-method=import]{background:#e9e0f7;color:#543279;border-bottom-color:#b49ad5}

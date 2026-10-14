@@ -14,6 +14,8 @@ import { modelAvailable } from './model/availability';
 import { MAX_LENGTH } from './security/policy';
 import { t } from './content/text';
 import { appTemplate } from './ui/template';
+import { setupMappingImport } from './ui/import-mapping';
+import { ImportedDictionary, preferImported } from './detection/imported';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = appTemplate();
@@ -67,6 +69,7 @@ const loader = new ModelLoader();
 let nerRun=0;
 let renderVersion=0;
 let report:MappingRow[]=[];
+let dictionary:ImportedDictionary|null=null;
 const restore=setupRestore(()=>({rows:report,busy}),saveText);
 const table=new CandidateTable($('candidates'),()=>candidates,refresh,message=>{status.textContent=message;});
 function updateCheckButtons():void {
@@ -110,8 +113,9 @@ function refresh(): void {
   updateCheckButtons();
   $('length').textContent = t('input.length',{count:source.value.length,max:MAX_LENGTH});
   $('category-filter-count').textContent = selectedCategories.size === CATEGORIES.length ? t('filter.all') : t('filter.selected',{count:selectedCategories.size});
-  const effective = withCategories(candidates, selectedCategories);
-  const spans=assignments(effective);
+  const visible=preferImported(candidates);
+  const effective = withCategories(visible, selectedCategories);
+  const spans=assignments(effective,dictionary?.reserved);
   output.value=checked ? applyAssignments(source.value,spans) : '';
   report=mappingFromAssignments(spans);
   const copy = $<HTMLButtonElement>('copy');
@@ -137,7 +141,7 @@ function refresh(): void {
   preview.append(document.createTextNode(source.value.slice(cursor)));
   if (!source.value) preview.textContent = t('view.empty');
   preview.scrollTop=previewScroll;
-  const groupCount=table.update(candidates,spans,selectedCategories);
+  const groupCount=table.update(visible,spans,selectedCategories);
   $('count').textContent=t('candidates.summary',{groups:groupCount,count:spans.length});
   $('replacement-total').textContent=t('candidates.count',{count:spans.length});
   $('candidates-empty').hidden=candidates.length>0;
@@ -145,6 +149,15 @@ function refresh(): void {
   $<HTMLButtonElement>('download-mapping').disabled=!report.length;
   restore.updateAvailability();
 }
+setupMappingImport(next=>{
+  // Validate matching limits before changing the current dictionary or cancelling AI.
+  const found=next?.find(source.value) ?? [];
+  cancelNer();dictionary=next;
+  candidates=mergeCandidates(candidates.filter(item=>item.method!=='import'),found,[]);
+  if(next && source.value)checked=true;
+  clearSelection();refresh();
+  status.textContent=t(next?'import.loaded':'import.cleared');
+});
 function merge(incoming:Candidate[], methods:Method[]):void {
   candidates=mergeCandidates(candidates,incoming,methods);
   refresh();
@@ -181,11 +194,14 @@ async function runCheck(withAi:boolean):Promise<void> {
   const current = revision;
   const run=++nerRun;
   const input = source.value;
-  checked=true;
-  setInputView(true);
-  merge(detectRules(input),['rule']);
-  clearSelection();
+  let rulesComplete=false;
   try {
+    const imported=dictionary?.find(input) ?? [];
+    checked=true;
+    setInputView(true);
+    merge([...detectRules(input),...imported],['rule','import']);
+    rulesComplete=true;
+    clearSelection();
     if(!withAi){checkStatus.textContent=t('check.rulesDone');return;}
     checkStatus.textContent=t('check.preparing');
     const available=await modelAvailable(appBase());
@@ -198,7 +214,7 @@ async function runCheck(withAi:boolean):Promise<void> {
     if(run!==nerRun || current!==revision)return;
     merge([...detectRules(input),...entities.flatMap(item => mapNerEntities(input,[item],item.offset))],['rule','ner']);
     checkStatus.textContent=t('check.done');
-  } catch(e) { if(run===nerRun && current===revision)checkStatus.textContent=t('check.partialError',{reason:e instanceof Error ? e.message : t('ai.failed')}); }
+  } catch(e) { if(run===nerRun && current===revision)checkStatus.textContent=t(rulesComplete?'check.partialError':'check.failed',{reason:e instanceof Error ? e.message : t('ai.failed')}); }
   finally { if(run===nerRun){busy=false;updateCheckButtons();restore.updateAvailability();} }
 }
 $('check').addEventListener('click',()=>{void runCheck(false);});

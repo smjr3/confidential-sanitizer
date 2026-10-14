@@ -39,7 +39,7 @@ export class CandidateTable {
         row.dirty=false;
       }
       const confidence=group.flatMap(candidate=>candidate.confidence===undefined ? [] : [candidate.confidence]);
-      row.method.textContent=`${item.method==='rule' ? t('method.rule') : item.method==='manual' ? t('method.manual') : t('method.ner')}${confidence.length ? t('candidate.confidence',{percent:Math.round(confidence.reduce((a,b)=>a+b,0)/confidence.length*100)}) : ''}`;
+      row.method.textContent=`${t(`method.${item.method}`)}${confidence.length ? t('candidate.confidence',{percent:Math.round(confidence.reduce((a,b)=>a+b,0)/confidence.length*100)}) : ''}`;
       row.total.textContent=t('candidate.counts',{active:active.length,total:group.length});
       // Do not move controls which are already in the right position (preserves focus).
       if (this.body.children[position]!==row.node) this.body.insertBefore(row.node,this.body.children[position] ?? null);
