@@ -176,7 +176,8 @@
     "import.textLarge": "入力は{max}文字以内にしてください。",
     "import.outputLarge": "置換結果が大きすぎます。テキストまたはリストを分けてください。",
     "method.import": "読込リスト",
-    "check.failed": "チェックを完了できませんでした。{reason}"
+    "check.failed": "チェックを完了できませんでした。{reason}",
+    "import.confirmOverwrite": "現在の候補や置換結果、編集した置換先が変わる可能性があります。読み込み済みのリストは、新しいリストに入れ替わります。CSVを適用しますか？\n\nキャンセルすると現在の内容を保持します。"
   },
   "categories": {
     "PERSON": "氏名",

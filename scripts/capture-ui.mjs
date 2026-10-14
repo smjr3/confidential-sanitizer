@@ -18,6 +18,7 @@ try {
   const page = await context.newPage();
   const errors = [], externalRequests = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('dialog', dialog => dialog.dismiss());
   page.on('request', request => { if (new URL(request.url()).origin !== new URL(address).origin) externalRequests.push(request.url()); });
   await page.goto(address, { waitUntil: 'networkidle' });
   const input = `【架空のサンプル：システム変更の相談】\n\n株式会社サンプルの山田太郎さんから、販売管理システムの接続設定について相談がありました。\n\n現在の接続先は 10.20.1.10 です。作業前に接続状況を確認し、変更後に動作確認を行います。\n\n連絡先：yamada@example.com\n確認用URL：https://example.com/support\n\n株式会社サンプルへ送る回答案と、販売管理システムの確認項目を整理してください。`;
@@ -93,6 +94,13 @@ try {
   await page.locator('#check').click();
   assert.equal(await page.locator('#output').inputValue(), masked);
   assert.equal(await page.locator('#candidates tr').count(), originals.length);
+  // Re-importing over existing results requires confirmation. Dismiss preserves output.
+  await page.locator('#import-open').click();
+  const confirmation = page.waitForEvent('dialog');
+  await page.locator('#import-file').setInputFiles(csvPath);
+  assert.match((await confirmation).message(), /キャンセル/);
+  assert.equal(await page.locator('#output').inputValue(), masked);
+  await page.locator('#import-close').click();
   await page.locator('#clear').click();
   await page.locator('#source').fill('株式会社サンプルへ連絡');
   await page.locator('#check').click();

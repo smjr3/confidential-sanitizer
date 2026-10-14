@@ -2,13 +2,15 @@ import { t } from '../src/content/text';
 import { CATEGORY_LABELS } from '../src/detection/types';
 import { Window } from 'happy-dom';
 import { beforeEach,afterEach,it,expect,vi } from 'vitest';
-const mocked=vi.hoisted(()=>({available:vi.fn(),analyze:vi.fn(),dispose:vi.fn()}));
+const mocked=vi.hoisted(()=>({available:vi.fn(),analyze:vi.fn(),dispose:vi.fn(),confirm:vi.fn()}));
 vi.mock('../src/model/loader',()=>({ModelLoader:class {analyze=mocked.analyze;dispose=mocked.dispose;}}));
 vi.mock('../src/model/availability',()=>({modelAvailable:mocked.available}));
 let window:Window;
 beforeEach(async()=>{
   vi.resetModules();vi.clearAllMocks();
   window=new Window({url:'https://example.test/project/'});
+  mocked.confirm.mockReturnValue(true);
+  Object.defineProperty(window,'confirm',{value:mocked.confirm,configurable:true});
 
   for(const key of ['document','location','navigator'])vi.stubGlobal(key,(window as any)[key]);
   vi.stubGlobal('window',window);
@@ -259,4 +261,37 @@ it('opens and closes the import dialog without switching input views',()=>{
   el('import-dialog').dispatchEvent(new window.Event('cancel',{cancelable:true}));
   expect(el('import-dialog').open).toBe(false);expect(window.document.activeElement).toBe(el('import-open'));
   expect(el('edit-pane').hidden).toBe(false);
+});
+it('warns before importing over edited results and cancellation preserves every current decision',async()=>{
+  input('a@example.com 株式会社サンプル');click('check');
+  const row=el('candidates').children[0],replacement=row.querySelector('input[type=text]');
+  replacement.value='<EDITED>';change(replacement);
+  mocked.confirm.mockReturnValue(false);
+  await importCsv(customerCsv);
+  expect(mocked.confirm).toHaveBeenCalledWith(t('import.confirmOverwrite'));
+  expect(el('output').value).toBe('<EDITED> 株式会社サンプル');
+  expect(el('import-open').textContent).toBe(t('import.button'));
+  expect(el('import-rows').children.length).toBe(0);
+  expect(el('candidates').children[0]).toBe(row);
+});
+it('asks before replacing a loaded list even without text, and keeps it on cancel',async()=>{
+  await importCsv(customerCsv);expect(mocked.confirm).not.toHaveBeenCalled();
+  mocked.confirm.mockReturnValue(false);
+  await importCsv('original,replacement\n顧客B,<ORG_03>');
+  expect(mocked.confirm).toHaveBeenCalledTimes(1);
+  input('株式会社サンプル 顧客B');click('check');
+  expect(el('output').value).toBe('<ORG_07> 顧客B');
+  expect(el('import-rows').textContent).toContain('株式会社サンプル');
+  expect(el('import-rows').textContent).not.toContain('顧客B');
+});
+it('validates before warning and applies replacements when overwrite is accepted',async()=>{
+  await importCsv(customerCsv);input('株式会社サンプル');click('check');
+  await importCsv('invalid');expect(mocked.confirm).not.toHaveBeenCalled();
+  await importCsv('original,replacement\n株式会社サンプル,<ORG_99>');
+  expect(mocked.confirm).toHaveBeenCalledTimes(1);expect(el('output').value).toBe('<ORG_99>');
+});
+it('keeps legacy settings unchanged when reapplication is cancelled',async()=>{
+  input('=secret');await importCsv('元の文字列,置換先\n\'=secret,<OTHER_01>');
+  mocked.confirm.mockReturnValue(false);el('import-legacy-check').click();
+  expect(el('import-legacy-check').checked).toBe(false);expect(el('output').value).toBe('=secret');
 });

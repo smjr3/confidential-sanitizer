@@ -152,11 +152,13 @@ function refresh(): void {
 setupMappingImport(next=>{
   // Validate matching limits before changing the current dictionary or cancelling AI.
   const found=next?.find(source.value) ?? [];
+  if(next && (dictionary || candidates.length || busy) && !window.confirm(t('import.confirmOverwrite')))return false;
   cancelNer();dictionary=next;
   candidates=mergeCandidates(candidates.filter(item=>item.method!=='import'),found,[]);
   if(next && source.value)checked=true;
   clearSelection();refresh();
   status.textContent=t(next?'import.loaded':'import.cleared');
+  return true;
 });
 function merge(incoming:Candidate[], methods:Method[]):void {
   candidates=mergeCandidates(candidates,incoming,methods);
